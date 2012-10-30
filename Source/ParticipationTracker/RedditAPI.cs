@@ -112,10 +112,10 @@ namespace ParticipationTracker
             postURL = System.Web.HttpUtility.UrlEncode(postURL); 
             XmlDocument xml = null;
 
-            if (System.IO.File.Exists(@"c:\skd\ParticipationTracker\" + postURL))
+            if (System.IO.File.Exists(@"c:\skd\ParticipationTracker\Cache\" + postURL))
             {
                 xml = new XmlDocument();
-                xml.Load(@"c:\skd\ParticipationTracker\" + postURL);
+                xml.Load(@"c:\skd\ParticipationTracker\Cache\" + postURL);
             }
 
             return xml;
@@ -124,7 +124,7 @@ namespace ParticipationTracker
         private void SaveCachedVersion(string postURL, XmlDocument doc)
         {
             postURL = System.Web.HttpUtility.UrlEncode(postURL); 
-            doc.Save(@"c:\skd\ParticipationTracker\" + postURL);
+            doc.Save(@"c:\skd\ParticipationTracker\Cache\" + postURL);
         }
     }
 }
