@@ -5,6 +5,8 @@ using System.Text;
 using System.Xml;
 using System.Net;
 using Newtonsoft.Json;
+using System.IO;
+using Newtonsoft.Json.Linq;
 
 namespace ParticipationTracker
 {
@@ -126,5 +128,68 @@ namespace ParticipationTracker
             postURL = System.Web.HttpUtility.UrlEncode(postURL); 
             doc.Save(@"c:\skd\ParticipationTracker\Cache\" + postURL);
         }
+
+        public string Login(string username, string password)
+        {
+            string url = @"http://www.reddit.com/api/login/" + username;
+            string parameters = "user=" + username + "&passwd=" + password + "&api_type=json";
+
+            WebResponse response = SendPostData(parameters, url);
+            StreamReader str = new StreamReader(response.GetResponseStream());
+            string jsonResponse = str.ReadToEnd();
+
+            JObject o = JObject.Parse(jsonResponse);
+
+            string modHash = (string)o["json"]["data"]["modhash"];
+
+            return modHash;
+        }
+
+        public bool SetFlair(string subreddit, string name, string flairText, string cssClass, string modHash)
+        {
+            string parameters = "r=" + subreddit + "&name=" + name + "&text=" + flairText + "&css_class=" + cssClass + "&uh=" + modHash + "&api_type=json";
+            string url = @"http://www.reddit.com/api/flair";
+            //WebResponse response = SendPostData(parameters, url);
+
+            //StreamReader str = new StreamReader(response.GetResponseStream());
+            //string jsonResponse = str.ReadToEnd();
+
+            //JObject o = JObject.Parse(jsonResponse);
+
+            WebClient client = new WebClient();
+            client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
+
+            string flairURL = url + "?" + parameters;
+            string json = client.DownloadString(flairURL);
+
+            return true;
+        }
+
+
+        private WebResponse SendPostData(string parameters, string url)
+        {
+            WebRequest request = WebRequest.Create(url);
+            ((HttpWebRequest)request).UserAgent = "bot for /r/sketchdaily by /u/artomizer";
+            request.Method = "POST";
+            request.ContentType = "application/x-www-form-urlencoded";
+            Stream reqStream = request.GetRequestStream();
+
+            byte[] postArray = Encoding.ASCII.GetBytes(parameters);
+            reqStream.Write(postArray, 0, postArray.Length);
+            reqStream.Close();
+
+            WebResponse result;
+
+            try
+            {
+                result = request.GetResponse();
+            }
+            catch (WebException ex)
+            {
+                result = ex.Response;
+            }
+            return result;
+        }
+
     }
 }

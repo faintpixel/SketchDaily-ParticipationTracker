@@ -7,6 +7,7 @@ using System.Net;
 using System.IO;
 using System.Xml;
 using Newtonsoft.Json;
+using System.Configuration;
 
 namespace ParticipationTracker
 {
@@ -19,6 +20,11 @@ namespace ParticipationTracker
         {
             _reddit = new RedditAPI();
 
+            string username = ConfigurationManager.AppSettings["Username"];
+            string password = ConfigurationManager.AppSettings["Password"];
+            string modHash = _reddit.Login(username, password);
+            _reddit.SetFlair("sketchdaily", "davidwinters", "blah", "lion", modHash);
+            
             List<Post> posts = _reddit.GetAllPostsForSubreddit(@"http://www.reddit.com/r/sketchdaily/");
             ExportPostURLSToFile(posts, @"c:\skd\ParticipationTracker\FullPostList.txt");
 
