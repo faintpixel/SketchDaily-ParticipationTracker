@@ -22,8 +22,9 @@ namespace ParticipationTracker
 
             string username = ConfigurationManager.AppSettings["Username"];
             string password = ConfigurationManager.AppSettings["Password"];
-            string modHash = _reddit.Login(username, password);
-            _reddit.SetFlair("sketchdaily", "davidwinters", "blah", "lion", modHash);
+
+            RedditSession session = _reddit.Login(username, password);
+            _reddit.SetFlair("sketchdaily", "davidwinters", "blah", "lion", session);
             
             List<Post> posts = _reddit.GetAllPostsForSubreddit(@"http://www.reddit.com/r/sketchdaily/");
             ExportPostURLSToFile(posts, @"c:\skd\ParticipationTracker\FullPostList.txt");
