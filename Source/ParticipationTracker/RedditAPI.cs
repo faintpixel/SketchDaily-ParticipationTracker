@@ -159,13 +159,6 @@ namespace ParticipationTracker
 
             JObject o = JObject.Parse(jsonResponse);
 
-            //WebClient client = new WebClient();
-            //client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
-            
-
-            //string flairURL = url + "?" + parameters;
-            //string json = client.DownloadString(flairURL);
-
             return true;
         }
 
@@ -201,6 +194,8 @@ namespace ParticipationTracker
             {
                 result = ex.Response;
             }
+
+            System.Threading.Thread.Sleep(3000); // can be 2000, but want to make sure not to overload it
             return result;
         }
 

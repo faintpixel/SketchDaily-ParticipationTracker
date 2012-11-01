@@ -20,12 +20,6 @@ namespace ParticipationTracker
         {
             _reddit = new RedditAPI();
 
-            string username = ConfigurationManager.AppSettings["Username"];
-            string password = ConfigurationManager.AppSettings["Password"];
-
-            RedditSession session = _reddit.Login(username, password);
-            _reddit.SetFlair("sketchdaily", "davidwinters", "blah", "lion", session);
-            
             List<Post> posts = _reddit.GetAllPostsForSubreddit(@"http://www.reddit.com/r/sketchdaily/");
             ExportPostURLSToFile(posts, @"c:\skd\ParticipationTracker\FullPostList.txt");
 
@@ -74,6 +68,54 @@ namespace ParticipationTracker
             SetStreakInfo(ref participationList, themeList);
             DisplayResults(participationList);
             ExportResultsToFile(participationList, @"c:\skd\ParticipationTracker\Results.txt");
+
+            SetFlair(participationList);
+            Console.WriteLine("Done.");
+        }
+
+        private static void SetFlair(List<UserParticipation> participation)
+        {
+            List<string> participatingUsers = new List<string>();
+            participatingUsers.Add("artomizer");
+            participatingUsers.Add("davidwinters");
+            participatingUsers.Add("MeatyElbow");
+            participatingUsers.Add("skitchbot");
+            participatingUsers.Add("Varo");
+            participatingUsers.Add("NerdOfFolly");
+            participatingUsers.Add("DodongoDislikesSmoke");
+            participatingUsers.Add("DocUnissis");
+            participatingUsers.Add("nyxmori");
+
+            string username = ConfigurationManager.AppSettings["Username"];
+            string password = ConfigurationManager.AppSettings["Password"];
+
+            RedditSession session = _reddit.Login(username, password);
+
+            foreach (UserParticipation user in participation)
+            {
+                if (participatingUsers.Contains(user.Username))
+                {
+                    string flair = "streak";
+                    string flairText = "Current Streak";
+                    if (user.CurrentStreak == 0)
+                    {
+                        flair = "";
+                        flairText = "";
+                    }
+                    else if (user.CurrentStreak <= 10)
+                        flair = "streak" + user.CurrentStreak;
+                    else if (user.CurrentStreak < 20)
+                        flair = "streak10plus";
+                    else if (user.CurrentStreak < 30)
+                        flair = "streak20plus";
+                    else
+                        flair = "streak30plus";
+
+                    Console.WriteLine("Setting flair for " + user.Username + " - " + flair + " - " + flairText);
+
+                    _reddit.SetFlair("sketchdaily", user.Username, flairText, flair, session);
+                }
+            }
         }
 
         private static List<string> RemoveBlacklistedPosts(List<Post> posts)
