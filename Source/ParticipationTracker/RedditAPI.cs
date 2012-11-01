@@ -162,6 +162,40 @@ namespace ParticipationTracker
             return true;
         }
 
+        public bool SetBatchFlair(string subreddit, List<Flair> flair, RedditSession session)
+        {
+            
+            string url = @"http://www.reddit.com/api/flaircsv.json";
+
+            List<string> flairParameters = new List<string>();
+            string current = "";
+            foreach (Flair userFlair in flair)
+            {
+                string p = userFlair.Username + "," + userFlair.Text + "," + userFlair.Css + "\n";
+                if (current.Length + p.Length >= 100)
+                {
+                    flairParameters.Add(current);
+                    current = "";
+                }
+                current += p;
+            }
+            flairParameters.Add(current);
+
+            foreach (string flairCall in flairParameters)
+            {
+                string parameters = "r=" + subreddit + "&flair_csv=" + flairCall + "&uh=" + session.ModHash;
+
+                WebResponse response = SendPostData(parameters, url, session.CookieData);
+
+                StreamReader str = new StreamReader(response.GetResponseStream());
+                string jsonResponse = str.ReadToEnd();
+
+                //JObject o = JObject.Parse(jsonResponse);
+            }
+
+            return true;
+        }
+
 
         private WebResponse SendPostData(string parameters, string url, string cookieData)
         {

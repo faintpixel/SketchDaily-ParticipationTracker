@@ -50,11 +50,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Comment.cs" />
+    <Compile Include="Flair.cs" />
     <Compile Include="Post.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RedditAPI.cs" />
     <Compile Include="RedditSession.cs" />
+    <Compile Include="UserFlair.cs" />
     <Compile Include="UserParticipation.cs" />
   </ItemGroup>
   <ItemGroup>

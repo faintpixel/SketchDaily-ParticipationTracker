@@ -19,7 +19,7 @@ namespace ParticipationTracker
         static void Main(string[] args)
         {
             _reddit = new RedditAPI();
-
+            
             List<Post> posts = _reddit.GetAllPostsForSubreddit(@"http://www.reddit.com/r/sketchdaily/");
             ExportPostURLSToFile(posts, @"c:\skd\ParticipationTracker\FullPostList.txt");
 
@@ -73,49 +73,73 @@ namespace ParticipationTracker
             Console.WriteLine("Done.");
         }
 
+        private static Dictionary<string, UserFlair> LoadParticipatingUsers()
+        {
+            Dictionary<string, UserFlair> users = new Dictionary<string, UserFlair>();
+
+            StreamReader reader = File.OpenText(@"c:\skd\ParticipationTracker\Participants.txt");
+            string line = reader.ReadLine();
+            while (line != null)
+            {
+                UserFlair user = new UserFlair();
+                string[] flairInfo = line.Split(',');
+                user.Username = flairInfo[0];
+                user.DefaultFlair = flairInfo[2];
+                user.Webpage = flairInfo[1];
+
+                users.Add(user.Username, user);
+                line = reader.ReadLine();
+            }
+            reader.Close();
+
+            return users;
+        }
+
         private static void SetFlair(List<UserParticipation> participation)
         {
-            List<string> participatingUsers = new List<string>();
-            participatingUsers.Add("artomizer");
-            participatingUsers.Add("davidwinters");
-            participatingUsers.Add("MeatyElbow");
-            participatingUsers.Add("skitchbot");
-            participatingUsers.Add("Varo");
-            participatingUsers.Add("NerdOfFolly");
-            participatingUsers.Add("DodongoDislikesSmoke");
-            participatingUsers.Add("DocUnissis");
-            participatingUsers.Add("nyxmori");
+            Dictionary<string, UserFlair> participatingUsers = LoadParticipatingUsers();
 
             string username = ConfigurationManager.AppSettings["Username"];
             string password = ConfigurationManager.AppSettings["Password"];
 
             RedditSession session = _reddit.Login(username, password);
+            List<Flair> updatedFlair = new List<Flair>();
 
             foreach (UserParticipation user in participation)
             {
-                if (participatingUsers.Contains(user.Username))
+                if (participatingUsers.ContainsKey(user.Username))
                 {
-                    string flair = "streak";
-                    string flairText = "Current Streak";
+                    Flair userFlair = new Flair();
+                    userFlair.Username = user.Username;
+
+                    userFlair.Css = participatingUsers[user.Username].DefaultFlair;
+                    userFlair.Text = "(0) " + participatingUsers[user.Username].Webpage;
                     if (user.CurrentStreak == 0)
                     {
-                        flair = "";
-                        flairText = "";
+                        if (string.IsNullOrEmpty(userFlair.Css))
+                            userFlair.Css = "default";
                     }
                     else if (user.CurrentStreak <= 10)
-                        flair = "streak" + user.CurrentStreak;
+                        userFlair.Css = "streak" + user.CurrentStreak;
                     else if (user.CurrentStreak < 20)
-                        flair = "streak10plus";
+                        userFlair.Css = "streak10plus";
                     else if (user.CurrentStreak < 30)
-                        flair = "streak20plus";
+                        userFlair.Css = "streak20plus";
                     else
-                        flair = "streak30plus";
+                        userFlair.Css = "streak30plus";
 
-                    Console.WriteLine("Setting flair for " + user.Username + " - " + flair + " - " + flairText);
+                    if (user.CurrentStreak > 0)
+                        userFlair.Text = "(" + user.CurrentStreak + ") " + participatingUsers[user.Username].Webpage;
 
-                    _reddit.SetFlair("sketchdaily", user.Username, flairText, flair, session);
+                    Console.WriteLine("Setting flair for " + user.Username + " - " + userFlair.Css + " - " + userFlair.Text);
+
+                    updatedFlair.Add(userFlair);
+
+                    //_reddit.SetFlair("sketchdaily", user.Username, flairText, flair, session);
                 }
             }
+
+            _reddit.SetBatchFlair("sketchdaily", updatedFlair, session);
         }
 
         private static List<string> RemoveBlacklistedPosts(List<Post> posts)
