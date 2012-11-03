@@ -31,9 +31,12 @@ namespace ParticipationTracker
 
             Dictionary<string, UserParticipation> participation = new Dictionary<string, UserParticipation>();
 
+            int themeNumber = 0;
             foreach (string theme in themeList)
             {
-                List<XmlDocument> allCommentsForTheme = _reddit.GetAllCommentsForPost(theme);
+                themeNumber += 1;
+                bool useCache = themeNumber > 30;
+                List<XmlDocument> allCommentsForTheme = _reddit.GetAllCommentsForPost(theme, useCache);
 
                 foreach (XmlDocument xml in allCommentsForTheme)
                 {
@@ -49,7 +52,8 @@ namespace ParticipationTracker
 
                         UserParticipation p = participation[comment.Author];
                         p.TotalComments += 1;
-                        if (comment.Body.Contains("[") && comment.Body.Contains("]")) // this is a pretty crappy check.
+
+                        if (comment.BodyHTML.Contains("&lt;a") && comment.BodyHTML.Contains("&gt;")) // this is a pretty crappy check.
                         {
                             p.TotalLinks += 1;
                             if (p.DaysPostedLinks.Contains(theme) == false)
@@ -247,6 +251,7 @@ namespace ParticipationTracker
                 {
                     c.Author = comment.SelectSingleNode("data/author").InnerText;
                     c.Body = comment.SelectSingleNode("data/body").InnerText;
+                    c.BodyHTML = comment.SelectSingleNode("data/body_html").InnerText;
                     c.CreatedUTC = comment.SelectSingleNode("data/created").InnerText;
                     c.Downs = int.Parse(comment.SelectSingleNode("data/downs").InnerText);
                     c.Ups = int.Parse(comment.SelectSingleNode("data/ups").InnerText);

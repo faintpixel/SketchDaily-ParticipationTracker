@@ -8,6 +8,7 @@ namespace ParticipationTracker
     public class Comment
     {
         public string Body;
+        public string BodyHTML;
         public int Ups;
         public int Downs;
         public string Author;

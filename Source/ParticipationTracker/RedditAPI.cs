@@ -13,11 +13,11 @@ namespace ParticipationTracker
 {
     public class RedditAPI
     {
-        public List<XmlDocument> GetAllCommentsForPost(string postURL)
+        public List<XmlDocument> GetAllCommentsForPost(string postURL, bool useCache)
         {
             List<XmlDocument> documents = new List<XmlDocument>();
 
-            XmlDocument mainContent = GetXML(postURL + ".json");
+            XmlDocument mainContent = GetXML(postURL + ".json", useCache);
 
             documents.Add(mainContent);
 
@@ -26,7 +26,7 @@ namespace ParticipationTracker
             foreach (XmlNode missingComment in missingNodes)
             {
                 string commentURL = postURL + missingComment.InnerText + "/";
-                documents.AddRange(GetAllCommentsForPost(commentURL));
+                documents.AddRange(GetAllCommentsForPost(commentURL, useCache));
             }
 
             return documents;
@@ -43,7 +43,7 @@ namespace ParticipationTracker
 
             while (running)
             {
-                XmlDocument pageXML = GetXML(nextPageURL);
+                XmlDocument pageXML = GetXML(nextPageURL, false);
                 posts.AddRange(MapPosts(pageXML));
                 string nextPage = pageXML.SelectSingleNode("//after").InnerText;
                 if (string.IsNullOrEmpty(nextPage) == false)
@@ -82,9 +82,12 @@ namespace ParticipationTracker
             return results;
         }
 
-        private XmlDocument GetXML(string postURL)
+        private XmlDocument GetXML(string postURL, bool useCache)
         {
-            XmlDocument doc = GetCachedVersion(postURL);
+            XmlDocument doc = null;
+            
+            if(useCache)
+                doc = GetCachedVersion(postURL);
 
             if (doc == null)
             {
@@ -98,7 +101,9 @@ namespace ParticipationTracker
                 json = json.Replace("created_utc", "created");
 
                 doc = (XmlDocument)JsonConvert.DeserializeXmlNode("{\"root\":" + json + "}", "root");
-                SaveCachedVersion(postURL, doc);
+                
+                if(useCache)
+                    SaveCachedVersion(postURL, doc);
 
                 System.Threading.Thread.Sleep(3000); // can be 2000, but want to make sure not to overload it
             }
