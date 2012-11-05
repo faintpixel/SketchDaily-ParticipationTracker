@@ -60,6 +60,30 @@ namespace ParticipationTracker
             return posts;
         }
 
+        public List<Flair> GetAllFlair(RedditSession session)
+        {
+            List<Flair> flair = new List<Flair>();
+
+            string parameters = "r=sketchdaily&limit=100&uh=" + session.ModHash;
+            string url = @"http://www.reddit.com/api/flairlist";
+            WebResponse response = SendGetData(parameters, url, session.CookieData);
+
+            StreamReader str = new StreamReader(response.GetResponseStream());
+            string jsonResponse = str.ReadToEnd();
+
+            JObject o = JObject.Parse(jsonResponse);
+
+            //WebClient client = new WebClient();
+            //client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
+            //client.Headers.Add(HttpRequestHeader.Cookie, "reddit.com=" + HttpUtility.UrlEncode(session.CookieData));
+
+            //string postURL = url + "?" + parameters;
+            //string json = client.DownloadString(postURL);
+
+
+            return flair;
+        }
+
         private List<Post> MapPosts(XmlDocument xml)
         {
             List<Post> results = new List<Post>();
@@ -238,5 +262,38 @@ namespace ParticipationTracker
             return result;
         }
 
+        private WebResponse SendGetData(string parameters, string url, string cookieData)
+        {
+            WebRequest request = WebRequest.Create(url + "?" + parameters);
+            ((HttpWebRequest)request).UserAgent = "bot for /r/sketchdaily by /u/artomizer";
+
+            if (string.IsNullOrEmpty(cookieData) == false)
+            {
+                string sessionId = cookieData.Split(',')[2];
+                Cookie cookie = new Cookie("reddit_session", HttpUtility.UrlEncode(cookieData));
+                cookie.Domain = "reddit.com";
+                ((HttpWebRequest)request).CookieContainer = new CookieContainer();
+                ((HttpWebRequest)request).CookieContainer.Add(cookie);
+            }
+            request.Method = "GET";
+            request.ContentType = "application/x-www-form-urlencoded";
+            //Stream reqStream = request.GetRequestStream();
+
+            WebResponse result;
+
+            try
+            {
+                result = request.GetResponse();
+            }
+            catch (WebException ex)
+            {
+                result = ex.Response;
+            }
+
+            System.Threading.Thread.Sleep(3000); // can be 2000, but want to make sure not to overload it
+            return result;
+        }
+
+       
     }
 }

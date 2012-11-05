@@ -19,7 +19,7 @@ namespace ParticipationTracker
         static void Main(string[] args)
         {
             _reddit = new RedditAPI();
-            
+         
             List<Post> posts = _reddit.GetAllPostsForSubreddit(@"http://www.reddit.com/r/sketchdaily/");
             ExportPostURLSToFile(posts, @"c:\skd\ParticipationTracker\FullPostList.txt");
 
@@ -129,8 +129,14 @@ namespace ParticipationTracker
                         userFlair.Css = "streak10plus";
                     else if (user.CurrentStreak < 30)
                         userFlair.Css = "streak20plus";
-                    else
+                    else if (user.CurrentStreak < 40)
                         userFlair.Css = "streak30plus";
+                    else if (user.CurrentStreak < 50)
+                        userFlair.Css = "streak40plus";
+                    else if (user.CurrentStreak < 60)
+                        userFlair.Css = "streak50plus";
+                    else
+                        userFlair.Css = "streak60plus";
 
                     if (user.CurrentStreak > 0)
                         userFlair.Text = "(" + user.CurrentStreak + ") " + participatingUsers[user.Username].Webpage;
