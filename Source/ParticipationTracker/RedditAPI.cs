@@ -60,28 +60,40 @@ namespace ParticipationTracker
             return posts;
         }
 
-        public List<Flair> GetAllFlair(RedditSession session)
+        public List<Flair> GetAllFlair(string after)
         {
-            List<Flair> flair = new List<Flair>();
+            List<Flair> flairList = new List<Flair>();
 
-            string parameters = "r=sketchdaily&limit=100&uh=" + session.ModHash;
-            string url = @"http://www.reddit.com/api/flairlist";
-            WebResponse response = SendGetData(parameters, url, session.CookieData);
+            string url = @"http://www.reddit.com/r/sketchdaily/api/flairlist.json?&limit=1000";
+            if(string.IsNullOrEmpty(after) == false)
+                url = url + "&after=" + after;
 
-            StreamReader str = new StreamReader(response.GetResponseStream());
-            string jsonResponse = str.ReadToEnd();
+            WebClient client = new WebClient();
+            client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
 
-            JObject o = JObject.Parse(jsonResponse);
+            string json = client.DownloadString(url);
+            System.Threading.Thread.Sleep(3000); // can be 2000, but want to make sure not to overload it
 
-            //WebClient client = new WebClient();
-            //client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
-            //client.Headers.Add(HttpRequestHeader.Cookie, "reddit.com=" + HttpUtility.UrlEncode(session.CookieData));
+            JObject o = JObject.Parse(json);
 
-            //string postURL = url + "?" + parameters;
-            //string json = client.DownloadString(postURL);
+            JArray users = (JArray)o["users"];
 
+            foreach (JObject user in users)
+            {
+                Flair flair = new Flair();
+                flair.Css = (string)user["flair_css_class"];
+                flair.Text = (string)user["flair_text"];
+                flair.Username = (string)user["user"];
 
-            return flair;
+                flairList.Add(flair);
+            }
+            
+            string next = (string)o["next"];
+
+            if (string.IsNullOrEmpty(next) == false)
+                flairList.AddRange(GetAllFlair(next));
+
+            return flairList;
         }
 
         private List<Post> MapPosts(XmlDocument xml)

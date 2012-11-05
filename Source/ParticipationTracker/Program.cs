@@ -19,7 +19,7 @@ namespace ParticipationTracker
         static void Main(string[] args)
         {
             _reddit = new RedditAPI();
-         
+
             List<Post> posts = _reddit.GetAllPostsForSubreddit(@"http://www.reddit.com/r/sketchdaily/");
             ExportPostURLSToFile(posts, @"c:\skd\ParticipationTracker\FullPostList.txt");
 
@@ -73,7 +73,8 @@ namespace ParticipationTracker
             DisplayResults(participationList);
             ExportResultsToFile(participationList, @"c:\skd\ParticipationTracker\Results.txt");
 
-            SetFlair(participationList);
+            Dictionary<string, Flair> currentFlair = CreateFlairDictionary();
+            SetFlair(participationList, currentFlair);
             Console.WriteLine("Done.");
         }
 
@@ -99,7 +100,7 @@ namespace ParticipationTracker
             return users;
         }
 
-        private static void SetFlair(List<UserParticipation> participation)
+        private static void SetFlair(List<UserParticipation> participation, Dictionary<string, Flair> currentFlair)
         {
             Dictionary<string, UserFlair> participatingUsers = LoadParticipatingUsers();
 
@@ -111,42 +112,57 @@ namespace ParticipationTracker
 
             foreach (UserParticipation user in participation)
             {
+                Flair userFlair = new Flair();
+                userFlair.Username = user.Username;
+                if (user.CurrentStreak == 0)
+                    userFlair.Css = "default";
+                else if (user.CurrentStreak <= 10)
+                    userFlair.Css = "streak" + user.CurrentStreak;
+                else if (user.CurrentStreak < 20)
+                    userFlair.Css = "streak10plus";
+                else if (user.CurrentStreak < 30)
+                    userFlair.Css = "streak20plus";
+                else if (user.CurrentStreak < 40)
+                    userFlair.Css = "streak30plus";
+                else if (user.CurrentStreak < 50)
+                    userFlair.Css = "streak40plus";
+                else if (user.CurrentStreak < 60)
+                    userFlair.Css = "streak50plus";
+                else
+                    userFlair.Css = "streak60plus";
+
+                string webpage = "";
                 if (participatingUsers.ContainsKey(user.Username))
                 {
-                    Flair userFlair = new Flair();
-                    userFlair.Username = user.Username;
-
-                    userFlair.Css = participatingUsers[user.Username].DefaultFlair;
-                    userFlair.Text = "(0) " + participatingUsers[user.Username].Webpage;
                     if (user.CurrentStreak == 0)
                     {
+                        userFlair.Css = participatingUsers[user.Username].DefaultFlair;
                         if (string.IsNullOrEmpty(userFlair.Css))
                             userFlair.Css = "default";
                     }
-                    else if (user.CurrentStreak <= 10)
-                        userFlair.Css = "streak" + user.CurrentStreak;
-                    else if (user.CurrentStreak < 20)
-                        userFlair.Css = "streak10plus";
-                    else if (user.CurrentStreak < 30)
-                        userFlair.Css = "streak20plus";
-                    else if (user.CurrentStreak < 40)
-                        userFlair.Css = "streak30plus";
-                    else if (user.CurrentStreak < 50)
-                        userFlair.Css = "streak40plus";
-                    else if (user.CurrentStreak < 60)
-                        userFlair.Css = "streak50plus";
-                    else
-                        userFlair.Css = "streak60plus";
 
-                    if (user.CurrentStreak > 0)
-                        userFlair.Text = "(" + user.CurrentStreak + ") " + participatingUsers[user.Username].Webpage;
-
-                    Console.WriteLine("Setting flair for " + user.Username + " - " + userFlair.Css + " - " + userFlair.Text);
-
-                    updatedFlair.Add(userFlair);
-
-                    //_reddit.SetFlair("sketchdaily", user.Username, flairText, flair, session);
+                    webpage = participatingUsers[user.Username].Webpage;
                 }
+
+                userFlair.Text = "(" + user.CurrentStreak + ") " + webpage;
+
+                if (user.CurrentStreak == 0 && string.IsNullOrEmpty(webpage) && userFlair.Css == "default")
+                {
+                    userFlair.Text = "";
+                    userFlair.Css = "";
+                }
+
+                if (user.CurrentStreak != 0 || currentFlair.ContainsKey(user.Username))
+                {
+                    Console.WriteLine("Setting flair for " + user.Username + " - " + userFlair.Css + " - " + userFlair.Text);
+                    updatedFlair.Add(userFlair);
+                }
+                else
+                {
+                    //Console.WriteLine("Ignoring flair for user " + user.Username);
+                }
+
+               
             }
 
             _reddit.SetBatchFlair("sketchdaily", updatedFlair, session);
@@ -268,6 +284,19 @@ namespace ParticipationTracker
             }
 
             return results;
+        }
+
+        private static Dictionary<string, Flair> CreateFlairDictionary()
+        {
+            Dictionary<string, Flair> flairDictionary = new Dictionary<string, Flair>();
+            List<Flair> flair = _reddit.GetAllFlair(null);
+
+            foreach (Flair f in flair)
+            {
+                flairDictionary.Add(f.Username, f);
+            }
+
+            return flairDictionary;
         }
 
 
