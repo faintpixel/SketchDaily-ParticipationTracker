@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web;
 
-namespace ParticipationTracker
+namespace RedditAPI.Models
 {
-    public class RedditSession
+    public class Session
     {
         public string ModHash;
         public string CookieData;

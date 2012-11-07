@@ -8,22 +8,24 @@ using System.IO;
 using System.Xml;
 using Newtonsoft.Json;
 using System.Configuration;
+using RedditAPI;
+using RedditAPI.Models;
 
 namespace ParticipationTracker
 {
     class Program
     {
 
-        private static RedditAPI _reddit;
+        private static Reddit _reddit;
+        private static string PARTICIPANTS_FILE = ConfigurationManager.AppSettings["ParticipantsFile"];
+        private static string BLACKLIST_FILE = ConfigurationManager.AppSettings["BlackListFile"];
 
         static void Main(string[] args)
         {
-            _reddit = new RedditAPI();
+            _reddit = new Reddit();
 
-            List<Post> posts = _reddit.GetAllPostsForSubreddit(@"http://www.reddit.com/r/sketchdaily/");
-            ExportPostURLSToFile(posts, @"c:\skd\ParticipationTracker\FullPostList.txt");
-
-            //List<string> postList = GetOrderedListOfThemes();
+            List<Post> posts = _reddit.GetAllPostsForSubreddit("sketchdaily");
+            ExportPostURLSToFile(posts, "FullPostList.txt");
 
             posts.RemoveAt(0); // remove the first one since the day is not over yet
 
@@ -70,8 +72,8 @@ namespace ParticipationTracker
             List<UserParticipation> participationList = participation.Values.ToList();
 
             SetStreakInfo(ref participationList, themeList);
-            DisplayResults(participationList);
-            ExportResultsToFile(participationList, @"c:\skd\ParticipationTracker\Results.txt");
+            //DisplayResults(participationList);
+            ExportResultsToFile(participationList, @"Results.txt");
 
             Dictionary<string, Flair> currentFlair = CreateFlairDictionary();
             SetFlair(participationList, currentFlair);
@@ -82,7 +84,7 @@ namespace ParticipationTracker
         {
             Dictionary<string, UserFlair> users = new Dictionary<string, UserFlair>();
 
-            StreamReader reader = File.OpenText(@"c:\skd\ParticipationTracker\Participants.txt");
+            StreamReader reader = File.OpenText(PARTICIPANTS_FILE);
             string line = reader.ReadLine();
             while (line != null)
             {
@@ -107,7 +109,7 @@ namespace ParticipationTracker
             string username = ConfigurationManager.AppSettings["Username"];
             string password = ConfigurationManager.AppSettings["Password"];
 
-            RedditSession session = _reddit.Login(username, password);
+            Session session = _reddit.Login(username, password);
             List<Flair> updatedFlair = new List<Flair>();
 
             foreach (UserParticipation user in participation)
@@ -165,13 +167,13 @@ namespace ParticipationTracker
                
             }
 
-            _reddit.SetBatchFlair("sketchdaily", updatedFlair, session);
+            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session);
         }
 
         private static List<string> RemoveBlacklistedPosts(List<Post> posts)
         {
             List<string> filteredList = new List<string>();
-            StreamReader reader = File.OpenText(@"c:\skd\ParticipationTracker\BlackList.txt");
+            StreamReader reader = File.OpenText(BLACKLIST_FILE);
             List<string> blacklist = new List<string>();
 
             string line = reader.ReadLine();
@@ -289,7 +291,7 @@ namespace ParticipationTracker
         private static Dictionary<string, Flair> CreateFlairDictionary()
         {
             Dictionary<string, Flair> flairDictionary = new Dictionary<string, Flair>();
-            List<Flair> flair = _reddit.GetAllFlair(null);
+            List<Flair> flair = _reddit.GetFlairForSubreddit("sketchdaily");
 
             foreach (Flair f in flair)
             {
