@@ -7,6 +7,7 @@ using System.Configuration;
 using Newtonsoft.Json.Linq;
 using System.Xml;
 using Newtonsoft.Json;
+using System.IO;
 
 namespace RedditAPI
 {
@@ -132,25 +133,6 @@ namespace RedditAPI
             return posts;
         }
 
-        public List<XmlDocument> GetAllCommentsForPost(string postURL, bool useCache) // this still needs to be cleaned up. 
-        {
-            List<XmlDocument> documents = new List<XmlDocument>();
-
-            XmlDocument mainContent = GetXML(postURL + ".json", useCache);
-
-            documents.Add(mainContent);
-
-            // check if it contains 'more' and if it does, loop through and merge them together so we have everything
-            XmlNodeList missingNodes = mainContent.SelectNodes("//children[kind=\"more\"]/data/id");
-            foreach (XmlNode missingComment in missingNodes)
-            {
-                string commentURL = postURL + missingComment.InnerText + "/";
-                documents.AddRange(GetAllCommentsForPost(commentURL, useCache));
-            }
-
-            return documents;
-        }
-
         private List<Post> GetSubredditPosts(string subreddit, string after)
         {
             List<Post> posts = new List<Post>();
@@ -186,8 +168,7 @@ namespace RedditAPI
                 posts.AddRange(GetSubredditPosts(subreddit, next));
 
             return posts;
-        }
-        
+        }        
 
         private void Wait()
         {
@@ -197,61 +178,123 @@ namespace RedditAPI
 
                 if (timeSinceLastAPICall.Milliseconds < API_DELAY)
                 {
-                    int timeToWait = API_DELAY - timeSinceLastAPICall.Milliseconds;
-                    Console.WriteLine("[WAIT] " + timeToWait + " ms");
-                    
-                    System.Threading.Thread.Sleep(timeToWait);
+                    int timeToWait = (int)(API_DELAY - timeSinceLastAPICall.TotalMilliseconds);                    
+                    if (timeToWait > 0)
+                    {
+                        Console.WriteLine("[WAIT] " + timeToWait + " ms");
+                        System.Threading.Thread.Sleep(timeToWait);
+                    }
                 }
             }
 
             _timeOfLastAPIRequest = DateTime.Now;
         }
 
-        private XmlDocument GetCachedVersion(string postURL)
+        private string GetCachedVersion(string postURL)
         {
             postURL = System.Web.HttpUtility.UrlEncode(postURL);
-            XmlDocument xml = null;
+
+            string doc = null;
 
             if (System.IO.File.Exists(CACHE_DIRECTORY + postURL))
             {
                 Console.WriteLine("[CACHE READ] " + postURL);
-                xml = new XmlDocument();
-                xml.Load(CACHE_DIRECTORY + postURL);                
-            }
-
-            return xml;
-        }
-
-        private void SaveCachedVersion(string postURL, XmlDocument doc)
-        {
-            Console.WriteLine("[CACHE WRITE] " + postURL);
-            postURL = System.Web.HttpUtility.UrlEncode(postURL);
-            doc.Save(CACHE_DIRECTORY + postURL);
-        }
-
-        private XmlDocument GetXML(string postURL, bool useCache) // this should die in a fire
-        {
-            XmlDocument doc = null;
-
-            if (useCache)
-                doc = GetCachedVersion(postURL);
-
-            if (doc == null)
-            {
-                Wait();
-                string json = _httpHelper.SendGet(postURL);
-
-                json = json.Replace("selftext", "body");
-                json = json.Replace("created_utc", "created");
-
-                doc = (XmlDocument)JsonConvert.DeserializeXmlNode("{\"root\":" + json + "}", "root");
-
-                if (useCache)
-                    SaveCachedVersion(postURL, doc);
+                StreamReader reader = File.OpenText(CACHE_DIRECTORY + postURL);
+                string line = reader.ReadLine();
+                while (line != null)
+                {
+                    doc += line;
+                    line = reader.ReadLine();
+                }
+                reader.Close();
             }
 
             return doc;
         }
+
+        private void SaveCachedVersion(string postURL, string doc)
+        {
+            Console.WriteLine("[CACHE WRITE] " + postURL);
+            string filePath = CACHE_DIRECTORY + System.Web.HttpUtility.UrlEncode(postURL);
+            StreamWriter writer = File.CreateText(filePath);
+            writer.WriteLine(doc);
+            writer.Close();
+        }
+
+        public List<Comment> GetComments(string postUrl, bool useCache)
+        {
+            List<Comment> results = new List<Comment>();
+
+            string response = null;
+            if (useCache)
+                response = GetCachedVersion(postUrl);
+
+            if (useCache == false || string.IsNullOrEmpty(response))
+            {
+                Wait();
+                response = _httpHelper.SendGet(postUrl + ".json");
+                if (useCache)
+                    SaveCachedVersion(postUrl, response);
+            }
+
+            JArray dataArray = JArray.Parse(response);
+
+            if (dataArray.Count != 2)
+                throw new Exception("Arto has no idea what he's doing.");
+
+            string after = (string)dataArray[1]["data"]["after"]; // this is pointless
+
+            JArray comments = (JArray)dataArray[1]["data"]["children"];
+
+            foreach (JObject comment in comments)
+            {
+                results.AddRange(ParseComment(comment, postUrl, useCache));
+            }
+
+            return results;
+        }
+
+        private List<Comment> ParseComment(JObject data, string postUrl, bool useCache)
+        {
+            List<Comment> comments = new List<Comment>();
+
+            string kind = (string)data["kind"];
+
+            if (kind == "more")
+            {
+                // get them
+                string id = (string)data["data"]["id"];
+                comments.AddRange(GetComments(postUrl + id + "/", useCache));
+            }
+            else
+            {
+                Comment comment = new Comment();
+                comment.Author = (string)data["data"]["author"];
+                comment.Body = (string)data["data"]["body"];
+                comment.BodyHTML = (string)data["data"]["body_html"];
+                comment.CreatedUTC = ((float)data["data"]["created"]).ToString();
+                comment.Downs = (int)data["data"]["downs"];
+                comment.Flair = (string)data["data"]["author_flair_css_class"];
+                comment.Ups = (int)data["data"]["ups"];
+
+                if (data["data"]["replies"].Type == JTokenType.Object)
+                {
+                    JArray children = (JArray)data["data"]["replies"]["data"]["children"];
+
+                    foreach (JObject child in children)
+                        comments.AddRange(ParseComment(child, postUrl, useCache));
+                }
+                else
+                {
+                    bool stop = true;
+                }
+
+                comments.Add(comment);
+            }
+
+            return comments;
+        }
+
        
     }
 }

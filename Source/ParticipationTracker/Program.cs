@@ -38,41 +38,33 @@ namespace ParticipationTracker
             {
                 themeNumber += 1;
                 bool useCache = themeNumber > 30;
-                List<XmlDocument> allCommentsForTheme = _reddit.GetAllCommentsForPost(theme, useCache);
 
-                foreach (XmlDocument xml in allCommentsForTheme)
+                List<Comment> allCommentsForTheme = _reddit.GetComments(theme, useCache);
+
+                foreach (Comment comment in allCommentsForTheme)
                 {
+                    if (participation.ContainsKey(comment.Author) == false)
+                        participation.Add(comment.Author, new UserParticipation(comment.Author));
+                    
+                    UserParticipation p = participation[comment.Author];
+                    p.TotalComments += 1;
 
-                    XmlNodeList comments = xml.SelectNodes("//children");
-
-                    List<Comment> c = ParseComments(comments);
-
-                    foreach (Comment comment in c)
+                    if (comment.BodyHTML.Contains("&lt;a") && comment.BodyHTML.Contains("&gt;")) // this is a pretty crappy check.
                     {
-                        if (participation.ContainsKey(comment.Author) == false)
-                            participation.Add(comment.Author, new UserParticipation(comment.Author));
-
-                        UserParticipation p = participation[comment.Author];
-                        p.TotalComments += 1;
-
-                        if (comment.BodyHTML.Contains("&lt;a") && comment.BodyHTML.Contains("&gt;")) // this is a pretty crappy check.
-                        {
-                            p.TotalLinks += 1;
-                            if (p.DaysPostedLinks.Contains(theme) == false)
-                                p.DaysPostedLinks.Add(theme);
-                        }
-                        p.Upvotes += comment.Ups;
-                        p.Downvotes += comment.Downs;
-
-                        participation[comment.Author] = p;
+                        p.TotalLinks += 1;
+                        if (p.DaysPostedLinks.Contains(theme) == false)
+                            p.DaysPostedLinks.Add(theme);
                     }
+                    p.Upvotes += comment.Ups;
+                    p.Downvotes += comment.Downs;
+
+                    participation[comment.Author] = p;
                 }
             }
 
             List<UserParticipation> participationList = participation.Values.ToList();
 
             SetStreakInfo(ref participationList, themeList);
-            //DisplayResults(participationList);
             ExportResultsToFile(participationList, @"Results.txt");
 
             Dictionary<string, Flair> currentFlair = CreateFlairDictionary();
