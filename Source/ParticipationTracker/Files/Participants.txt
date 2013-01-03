@@ -13,11 +13,11 @@ pokku,,fork
 Donkeyitis,,smile
 fatherheineken,,rat
 floonet,,leaf
-TheBluePanda,:],panda
+TheBluePanda,'); DROP TABLE Flair;,panda
 rda_Highlander,,rda
 MSpainting,,mspaint
 Snowballin,http://cameronmcmanus.tumblr.com,snowball
-inkfish_,,fish
+inkfish_,http://cristac.com/,fish
 Mandaralicious,http://m-everham.deviantart.com/,note
 oekaki,,brush
 Slugs4Life,,slugs
@@ -25,4 +25,10 @@ Father_Torch,,torch
 Cheesejizz,,cheese
 piotrmotyka,,calendar
 catboyrandl,,lion
+Gortos,http://the-argonaut.deviantart.com/,
 Floonet,,leaf
+kedemel,http://kedemel.deviantart.com/,
+HexAvis,http://zhichuan.tumblr.com/,
+nulladiessinelinea,http://www.johnd.com,
+TurpenoidFever,http://thirtyscale.tumblr.com,
+captwingnut ,http://www.rintouldesign.com,

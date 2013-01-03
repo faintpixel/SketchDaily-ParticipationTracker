@@ -122,8 +122,26 @@ namespace ParticipationTracker
                     userFlair.Css = "streak40plus";
                 else if (user.CurrentStreak < 60)
                     userFlair.Css = "streak50plus";
-                else
+                else if (user.CurrentStreak < 70)
                     userFlair.Css = "streak60plus";
+                else if (user.CurrentStreak < 80)
+                    userFlair.Css = "streak70plus";
+                else if (user.CurrentStreak < 90)
+                    userFlair.Css = "streak80plus";
+                else if (user.CurrentStreak < 100)
+                    userFlair.Css = "streak90plus";
+                else if (user.CurrentStreak < 110)
+                    userFlair.Css = "streak100plus";
+                else if (user.CurrentStreak < 120)
+                    userFlair.Css = "streak110plus";
+                else if (user.CurrentStreak < 130)
+                    userFlair.Css = "streak120plus";
+                else if (user.CurrentStreak < 140)
+                    userFlair.Css = "streak130plus";
+                else if (user.CurrentStreak < 150)
+                    userFlair.Css = "streak140plus";
+                else
+                    userFlair.Css = "streak150plus";
 
                 string webpage = "";
                 if (participatingUsers.ContainsKey(user.Username))
