@@ -1,6 +1,6 @@
 artomizer,,cat
-davidwinters,http://mpcmac.tumblr.com/,snowflake
-MeatyElbow,,meat
+davidwinters,http://thedavidwinters.tumblr.com/,snowflake
+MeatyElbow,http://meatyelbow.blogspot.ca/,meat
 skitchbot,http://felixjschlater.blogspot.ca/,skull
 Varo,http://jenthetracy.etsy.com/,color
 NerdOfFolly,,atown
@@ -32,3 +32,4 @@ HexAvis,http://zhichuan.tumblr.com/,
 nulladiessinelinea,http://www.johnd.com,
 TurpenoidFever,http://thirtyscale.tumblr.com,
 captwingnut ,http://www.rintouldesign.com,
+slink,http://checkityall.deviantart.com,

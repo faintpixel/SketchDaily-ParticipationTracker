@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Newtonsoft.Json.Linq;
 using System.Net;
 using System.IO;
 using System.Xml;
-using Newtonsoft.Json;
 using System.Configuration;
 using RedditAPI;
 using RedditAPI.Models;
@@ -111,37 +109,21 @@ namespace ParticipationTracker
                 if (user.CurrentStreak == 0)
                     userFlair.Css = "default";
                 else if (user.CurrentStreak <= 10)
-                    userFlair.Css = "streak" + user.CurrentStreak;
-                else if (user.CurrentStreak < 20)
-                    userFlair.Css = "streak10plus";
-                else if (user.CurrentStreak < 30)
-                    userFlair.Css = "streak20plus";
-                else if (user.CurrentStreak < 40)
-                    userFlair.Css = "streak30plus";
+                    userFlair.Css = "one";
                 else if (user.CurrentStreak < 50)
-                    userFlair.Css = "streak40plus";
-                else if (user.CurrentStreak < 60)
-                    userFlair.Css = "streak50plus";
-                else if (user.CurrentStreak < 70)
-                    userFlair.Css = "streak60plus";
-                else if (user.CurrentStreak < 80)
-                    userFlair.Css = "streak70plus";
-                else if (user.CurrentStreak < 90)
-                    userFlair.Css = "streak80plus";
+                    userFlair.Css = "ten";
                 else if (user.CurrentStreak < 100)
-                    userFlair.Css = "streak90plus";
-                else if (user.CurrentStreak < 110)
-                    userFlair.Css = "streak100plus";
-                else if (user.CurrentStreak < 120)
-                    userFlair.Css = "streak110plus";
-                else if (user.CurrentStreak < 130)
-                    userFlair.Css = "streak120plus";
-                else if (user.CurrentStreak < 140)
-                    userFlair.Css = "streak130plus";
+                    userFlair.Css = "fifty";
                 else if (user.CurrentStreak < 150)
-                    userFlair.Css = "streak140plus";
+                    userFlair.Css = "hundred";
+                else if (user.CurrentStreak < 200)
+                    userFlair.Css = "hundredfifty";
+                else if (user.CurrentStreak < 300)
+                    userFlair.Css = "twohundred";
+                else if (user.CurrentStreak < 365)
+                    userFlair.Css = "threehundred";
                 else
-                    userFlair.Css = "streak150plus";
+                    userFlair.Css = "oneyear";
 
                 string webpage = "";
                 if (participatingUsers.ContainsKey(user.Username))
@@ -156,7 +138,7 @@ namespace ParticipationTracker
                     webpage = participatingUsers[user.Username].Webpage;
                 }
 
-                userFlair.Text = "(" + user.CurrentStreak + ") " + webpage;
+                userFlair.Text = user.CurrentStreak + " " + webpage;
 
                 if (user.CurrentStreak == 0 && string.IsNullOrEmpty(webpage) && userFlair.Css == "default")
                 {
@@ -177,7 +159,7 @@ namespace ParticipationTracker
                
             }
 
-            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session);
+            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session); // this is important and should not really be commented out.
         }
 
         private static List<string> RemoveBlacklistedPosts(List<Post> posts)
@@ -268,7 +250,7 @@ namespace ParticipationTracker
 
             foreach (Post post in posts)
             {
-                writer.WriteLine(post.URL);
+                writer.WriteLine("(" + post.CreationDate + ")" + post.URL);
             }
             writer.Close();
         }

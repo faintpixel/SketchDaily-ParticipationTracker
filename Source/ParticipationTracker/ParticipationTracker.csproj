@@ -35,17 +35,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\Lib\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Web" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -58,13 +51,7 @@
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
-  </ItemGroup>
-  <ItemGroup />
-  <ItemGroup>
-    <ProjectReference Include="..\RedditAPI\RedditAPI.csproj">
-      <Project>{99367926-8ED3-4697-8265-7F9004FEB00A}</Project>
-      <Name>RedditAPI</Name>
-    </ProjectReference>
+    <None Include="server app.config" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Files\BlackList.txt">
@@ -73,6 +60,12 @@
     <Content Include="Files\Participants.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RedditAPI\RedditAPI.csproj">
+      <Project>{99367926-8ED3-4697-8265-7F9004FEB00A}</Project>
+      <Name>RedditAPI</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

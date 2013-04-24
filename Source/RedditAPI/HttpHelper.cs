@@ -6,6 +6,7 @@ using System.Net;
 using RedditAPI.Models;
 using System.Web;
 using System.IO;
+using System.Collections;
 
 namespace RedditAPI
 {
@@ -25,15 +26,22 @@ namespace RedditAPI
         public string SendPost(string url, string parameters, Session session = null)
         {
             Log("[POST] " + url + " - parameters: " + parameters);
-            WebRequest request = WebRequest.Create(url);
-            ((HttpWebRequest)request).UserAgent = "bot for /r/sketchdaily by /u/artomizer";
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            request.UserAgent = "bot for /r/sketchdaily by /u/artomizer";
 
             if (session != null)
             {
-                Cookie cookie = new Cookie("reddit_session", HttpUtility.UrlEncode(session.CookieData));
+                string encodedCookieData = HttpUtility.UrlEncode(session.CookieData);
+                Console.WriteLine("COOKIE DATA: " + encodedCookieData);
+
+                CookieContainer cookieContainer = new CookieContainer();                
+
+                Cookie cookie = new Cookie("reddit_session", encodedCookieData);
                 cookie.Domain = "reddit.com";
-                ((HttpWebRequest)request).CookieContainer = new CookieContainer();
-                ((HttpWebRequest)request).CookieContainer.Add(cookie);
+
+                string cookieValue = "reddit_session=" + cookie.Value;
+                cookieContainer.SetCookies(new Uri(url), cookieValue);
+                request.CookieContainer = cookieContainer;
             }
             request.Method = "POST";
             request.ContentType = "application/x-www-form-urlencoded";

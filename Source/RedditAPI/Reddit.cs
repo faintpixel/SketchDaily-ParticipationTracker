@@ -8,6 +8,8 @@ using Newtonsoft.Json.Linq;
 using System.Xml;
 using Newtonsoft.Json;
 using System.IO;
+using System.Text.RegularExpressions;
+using System.Web;
 
 namespace RedditAPI
 {
@@ -33,6 +35,7 @@ namespace RedditAPI
 
             Wait();
             string response = _httpHelper.SendPost(url, parameters);
+            Console.WriteLine("LOGIN RESPONSE: " + response);
 
             JObject data = JObject.Parse(response);
             JArray errors = (JArray)data["json"]["errors"];
@@ -73,6 +76,9 @@ namespace RedditAPI
 
                 Wait();
                 string response = _httpHelper.SendPost(url, parameters, session);
+                Console.WriteLine("RESPONSE:");
+                Console.WriteLine(response);
+                Console.WriteLine();
 
                 JArray results = JArray.Parse(response);
                 foreach (JObject result in results)
@@ -123,7 +129,7 @@ namespace RedditAPI
         {
             List<Post> posts = new List<Post>();
 
-            string url = "http://www.reddit.com/r/" + subreddit + ".json?limit=100";
+            string url = "http://www.reddit.com/r/" + subreddit + "/new/.json?sort=new&limit=100";
 
             posts = GetSubredditPosts("sketchdaily", null);
 
@@ -137,7 +143,7 @@ namespace RedditAPI
         {
             List<Post> posts = new List<Post>();
 
-            string url = "http://www.reddit.com/r/" + subreddit + "/.json?limit=100";
+            string url = "http://www.reddit.com/r/" + subreddit + "/new/.json?sort=new&limit=100";
             if (string.IsNullOrEmpty(after) == false)
                 url = url + "&after=" + after;
 
@@ -151,8 +157,8 @@ namespace RedditAPI
             {
                 Post p = new Post();
                 p.URL = "http://www.reddit.com" + (string)post["data"]["permalink"]; // doing it this way because if you use URL and it's not a self post you'll end up with the wrong link.
-                float utc = (float)post["data"]["created"]; // this is awkward
-                p.CreationDate = (long)utc;
+                string utc = post["data"]["created"].ToString(); // this is awkward
+                p.CreationDate = long.Parse(utc);
                 p.Author = (string)post["data"]["author"];
                 p.Downvotes = (int)post["data"]["downs"];
                 p.Id = (string)post["data"]["id"];
@@ -192,7 +198,8 @@ namespace RedditAPI
 
         private string GetCachedVersion(string postURL)
         {
-            postURL = System.Web.HttpUtility.UrlEncode(postURL);
+
+            postURL = ConvertURLToSafeFileName(postURL);
 
             string doc = null;
 
@@ -215,10 +222,15 @@ namespace RedditAPI
         private void SaveCachedVersion(string postURL, string doc)
         {
             Console.WriteLine("[CACHE WRITE] " + postURL);
-            string filePath = CACHE_DIRECTORY + System.Web.HttpUtility.UrlEncode(postURL);
+            string filePath = CACHE_DIRECTORY + ConvertURLToSafeFileName(postURL);
             StreamWriter writer = File.CreateText(filePath);
             writer.WriteLine(doc);
             writer.Close();
+        }
+
+        private string ConvertURLToSafeFileName(string url)
+        {
+            return HttpUtility.UrlEncode(url);
         }
 
         public List<Comment> GetComments(string postUrl, bool useCache)
