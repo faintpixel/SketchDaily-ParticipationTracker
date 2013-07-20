@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ParticipationTracker
 {
-    public class UserParticipation
+    public class User
     {
         public string Username;
         public int TotalComments;
@@ -14,6 +14,7 @@ namespace ParticipationTracker
         public int LongestStreak;
         public int Upvotes;
         public int Downvotes;
+        public string Webpage;
         public List<string> DaysPostedLinks = new List<string>();
         public int Karma
         {
@@ -23,9 +24,11 @@ namespace ParticipationTracker
             }
         }
 
-        public UserParticipation(string username)
+        public User(string username)
         {
             Username = username;
         }
+
+       
     }
 }

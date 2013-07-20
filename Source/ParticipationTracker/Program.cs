@@ -17,92 +17,64 @@ namespace ParticipationTracker
         private static Reddit _reddit;
         private static string PARTICIPANTS_FILE = ConfigurationManager.AppSettings["ParticipantsFile"];
         private static string BLACKLIST_FILE = ConfigurationManager.AppSettings["BlackListFile"];
+        private static int CACHE_AFTER_THIS_MANY_THEMES = 30;
 
         static void Main(string[] args)
         {
+            // TO DO:
+            // make sure api is returning themes ordered by date
+            // hopefully api is returning comments by date also
+            // GetFlairForSubreddit make sure it gets all the flair for real
+
+            ParticipationTracker participationTracker = new ParticipationTracker();
+
             _reddit = new Reddit();
 
-            List<Post> posts = _reddit.GetAllPostsForSubreddit("sketchdaily");
-            ExportPostURLSToFile(posts, "FullPostList.txt");
+            List<string> postURLs = participationTracker.GetRelevantPostURLs();
 
-            posts.RemoveAt(0); // remove the first one since the day is not over yet
-
-            List<string> themeList = RemoveBlacklistedPosts(posts);
-
-            Dictionary<string, UserParticipation> participation = new Dictionary<string, UserParticipation>();
+            Dictionary<string, User> userDictionary = new Dictionary<string, User>();
+            //List<string> postURLs = new List<string>();
+            //postURLs.Add(@"http://www.reddit.com/r/SketchDaily/comments/1i7mja/july_13th_serious_saturday_upside_down/");
 
             int themeNumber = 0;
-            foreach (string theme in themeList)
+            foreach (string postURL in postURLs)
             {
                 themeNumber += 1;
-                bool useCache = themeNumber > 30;
+                bool useCache = themeNumber > CACHE_AFTER_THIS_MANY_THEMES;
 
-                List<Comment> allCommentsForTheme = _reddit.GetComments(theme, useCache);
+                List<Comment> allCommentsForTheme = _reddit.GetComments(postURL, useCache);
 
                 foreach (Comment comment in allCommentsForTheme)
                 {
-                    if (participation.ContainsKey(comment.Author) == false)
-                        participation.Add(comment.Author, new UserParticipation(comment.Author));
+                    if (userDictionary.ContainsKey(comment.Author) == false)
+                        userDictionary.Add(comment.Author, new User(comment.Author));
+                    User user = userDictionary[comment.Author];
+
+                    participationTracker.ParseComment(postURL, comment, ref user);
                     
-                    UserParticipation p = participation[comment.Author];
-                    p.TotalComments += 1;
-
-                    if (comment.BodyHTML.Contains("&lt;a") && comment.BodyHTML.Contains("&gt;")) // this is a pretty crappy check.
-                    {
-                        p.TotalLinks += 1;
-                        if (p.DaysPostedLinks.Contains(theme) == false)
-                            p.DaysPostedLinks.Add(theme);
-                    }
-                    p.Upvotes += comment.Ups;
-                    p.Downvotes += comment.Downs;
-
-                    participation[comment.Author] = p;
+                    userDictionary[comment.Author] = user;
                 }
             }
 
-            List<UserParticipation> participationList = participation.Values.ToList();
+            List<User> users = userDictionary.Values.ToList();
 
-            SetStreakInfo(ref participationList, themeList);
-            ExportResultsToFile(participationList, @"Results.txt");
+            CalculateStreaks(ref users, postURLs);
+            ExportStatisticsToFile(users, @"Results.txt");
 
-            Dictionary<string, Flair> currentFlair = CreateFlairDictionary();
-            SetFlair(participationList, currentFlair);
+            Dictionary<string, Flair> currentFlair = GetCurrentUserFlairDictionary();
+            SetFlair(users, currentFlair);
             Console.WriteLine("Done.");
         }
 
-        private static Dictionary<string, UserFlair> LoadParticipatingUsers()
+        private static void SetFlair(List<User> users, Dictionary<string, Flair> currentFlair)
         {
-            Dictionary<string, UserFlair> users = new Dictionary<string, UserFlair>();
-
-            StreamReader reader = File.OpenText(PARTICIPANTS_FILE);
-            string line = reader.ReadLine();
-            while (line != null)
-            {
-                UserFlair user = new UserFlair();
-                string[] flairInfo = line.Split(',');
-                user.Username = flairInfo[0];
-                user.DefaultFlair = flairInfo[2];
-                user.Webpage = flairInfo[1];
-
-                users.Add(user.Username, user);
-                line = reader.ReadLine();
-            }
-            reader.Close();
-
-            return users;
-        }
-
-        private static void SetFlair(List<UserParticipation> participation, Dictionary<string, Flair> currentFlair)
-        {
-            Dictionary<string, UserFlair> participatingUsers = LoadParticipatingUsers();
-
             string username = ConfigurationManager.AppSettings["Username"];
             string password = ConfigurationManager.AppSettings["Password"];
 
             Session session = _reddit.Login(username, password);
             List<Flair> updatedFlair = new List<Flair>();
 
-            foreach (UserParticipation user in participation)
+            foreach (User user in users)
             {
                 Flair userFlair = new Flair();
                 userFlair.Username = user.Username;
@@ -125,22 +97,9 @@ namespace ParticipationTracker
                 else
                     userFlair.Css = "oneyear";
 
-                string webpage = "";
-                if (participatingUsers.ContainsKey(user.Username))
-                {
-                    if (user.CurrentStreak == 0)
-                    {
-                        userFlair.Css = participatingUsers[user.Username].DefaultFlair;
-                        if (string.IsNullOrEmpty(userFlair.Css))
-                            userFlair.Css = "default";
-                    }
+                userFlair.Text = user.CurrentStreak + " " + user.Webpage;
 
-                    webpage = participatingUsers[user.Username].Webpage;
-                }
-
-                userFlair.Text = user.CurrentStreak + " " + webpage;
-
-                if (user.CurrentStreak == 0 && string.IsNullOrEmpty(webpage) && userFlair.Css == "default")
+                if (user.CurrentStreak == 0 && string.IsNullOrEmpty(user.Webpage) && userFlair.Css == "default")
                 {
                     userFlair.Text = "";
                     userFlair.Css = "";
@@ -162,31 +121,12 @@ namespace ParticipationTracker
             _reddit.SetFlairBatch("sketchdaily", updatedFlair, session); // this is important and should not really be commented out.
         }
 
-        private static List<string> RemoveBlacklistedPosts(List<Post> posts)
-        {
-            List<string> filteredList = new List<string>();
-            StreamReader reader = File.OpenText(BLACKLIST_FILE);
-            List<string> blacklist = new List<string>();
+        
 
-            string line = reader.ReadLine();
-            while (line != null)
-            {
-                blacklist.Add(line);
-                line = reader.ReadLine();
-            }
-            reader.Close();
-
-            foreach (Post post in posts)
-                if (blacklist.Contains(post.URL) == false)
-                    filteredList.Add(post.URL);
-
-            return filteredList;
-        }
-
-        private static void SetStreakInfo(ref List<UserParticipation> participation, List<string> themes)
+        private static void CalculateStreaks(ref List<User> users, List<string> themes)
         {
             Console.WriteLine("Calculating Streaks");
-            foreach (UserParticipation user in participation)
+            foreach (User user in users)
             {
                 string streak = "";
                 foreach (string theme in themes)
@@ -202,20 +142,21 @@ namespace ParticipationTracker
             }
         }
 
-        private static void DisplayResults(List<UserParticipation> participation)
+        private static void DisplayResults(List<User> users)
         {
-            foreach (UserParticipation p in participation)
+            foreach (User user in users)
             {
-                Console.WriteLine(p.Username);
-                Console.WriteLine("  current streak: " + p.CurrentStreak);
-                Console.WriteLine("  longest streak: " + p.LongestStreak);
-                Console.WriteLine("  karma: " + p.Karma);
-                Console.WriteLine("  total comments: " + p.TotalComments);
-                Console.WriteLine("  total links: " + p.TotalLinks);
+                Console.WriteLine(user.Username);
+                Console.WriteLine("  current streak: " + user.CurrentStreak);
+                Console.WriteLine("  longest streak: " + user.LongestStreak);
+                Console.WriteLine("  karma: " + user.Karma);
+                Console.WriteLine("  total comments: " + user.TotalComments);
+                Console.WriteLine("  total links: " + user.TotalLinks);
+                Console.WriteLine("  webpage: " + user.Webpage);
             }
         }
 
-        private static void ExportResultsToFile(List<UserParticipation> participation, string file)
+        private static void ExportStatisticsToFile(List<User> users, string file)
         {
             StreamWriter writer = File.CreateText(file);
             writer.Write("User,");
@@ -225,34 +166,29 @@ namespace ParticipationTracker
             writer.Write("Upvotes,");
             writer.Write("Downvotes,");
             writer.Write("Total Comments,");
-            writer.Write("Total Links");
+            writer.Write("Total Links,");
+            writer.Write("Webpage");
             writer.WriteLine();            
 
-            foreach (UserParticipation p in participation)
+            foreach (User user in users)
             {
-                writer.Write(p.Username + ",");
-                writer.Write(p.CurrentStreak + ",");
-                writer.Write(p.LongestStreak + ",");
-                writer.Write(p.Karma + ",");
-                writer.Write(p.Upvotes + ",");
-                writer.Write(p.Downvotes + ",");
-                writer.Write(p.TotalComments + ",");
-                writer.Write(p.TotalLinks);
+                writer.Write(user.Username + ",");
+                writer.Write(user.CurrentStreak + ",");
+                writer.Write(user.LongestStreak + ",");
+                writer.Write(user.Karma + ",");
+                writer.Write(user.Upvotes + ",");
+                writer.Write(user.Downvotes + ",");
+                writer.Write(user.TotalComments + ",");
+                writer.Write(user.TotalLinks + ",");
+                writer.Write(user.Webpage);
                 writer.WriteLine();
             }
 
             writer.Close();
         }
 
-        private static void ExportPostURLSToFile(List<Post> posts, string file)
+        private static void ExportStatisticsToJson(List<User> users, string file)
         {
-            StreamWriter writer = File.CreateText(file);
-
-            foreach (Post post in posts)
-            {
-                writer.WriteLine("(" + post.CreationDate + ")" + post.URL);
-            }
-            writer.Close();
         }
 
         private static List<Comment> ParseComments(XmlNodeList comments)
@@ -280,7 +216,7 @@ namespace ParticipationTracker
             return results;
         }
 
-        private static Dictionary<string, Flair> CreateFlairDictionary()
+        private static Dictionary<string, Flair> GetCurrentUserFlairDictionary()
         {
             Dictionary<string, Flair> flairDictionary = new Dictionary<string, Flair>();
             List<Flair> flair = _reddit.GetFlairForSubreddit("sketchdaily");
