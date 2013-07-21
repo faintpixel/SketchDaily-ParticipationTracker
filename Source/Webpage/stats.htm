@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>SketchDaily Stats</title>
+		<link rel="stylesheet" type="text/css" href="datatables/media/css/demo_table.css">
+	</head>
+	<body>
+		<table id="statsTable">
+			<thead>
+				<tr>
+					<th>Username</th>
+					<th>Current Streak</th>
+					<th>Longest Streak</th>
+					<th>Total Comments</th>
+					<th>Total Links</th>					
+					<th>Upvotes</th>
+					<th>Downvotes</th>					
+					<th>Karma</th>
+				</tr>
+			</thead>
+			<tbody>
+			</tbody>
+		</table>
+		<script src="datatables/media/js/jquery.js"></script>
+		<script src="datatables/media/js/jquery.dataTables.min.js"></script>
+		<script>
+		
+		$(document).ready(function(){
+			
+			$('#statsTable').dataTable( {
+				"bProcessing": true,
+				"bPaginate": true,
+				"iDisplayLength": 50,
+				"sAjaxSource": "Results.json",
+				"aaSorting": [[ 1, "desc" ]],
+				"aoColumns": [
+					{ "mData": "Username" },
+					{ "mData": "CurrentStreak" },
+					{ "mData": "LongestStreak" },
+					{ "mData": "TotalComments" },
+					{ "mData": "TotalLinks" },
+					{ "mData": "Upvotes" },
+					{ "mData": "Downvotes" },
+					{ "mData": "Karma" }				
+				]
+			} );
+			
+			
+		});
+	 
+		</script>
+	</body>
+</html>

@@ -8,6 +8,7 @@ using System.Xml;
 using System.Configuration;
 using RedditAPI;
 using RedditAPI.Models;
+using System.Web.Script.Serialization;
 
 namespace ParticipationTracker
 {
@@ -21,11 +22,6 @@ namespace ParticipationTracker
 
         static void Main(string[] args)
         {
-            // TO DO:
-            // make sure api is returning themes ordered by date
-            // hopefully api is returning comments by date also
-            // GetFlairForSubreddit make sure it gets all the flair for real
-
             ParticipationTracker participationTracker = new ParticipationTracker();
 
             _reddit = new Reddit();
@@ -33,8 +29,6 @@ namespace ParticipationTracker
             List<string> postURLs = participationTracker.GetRelevantPostURLs();
 
             Dictionary<string, User> userDictionary = new Dictionary<string, User>();
-            //List<string> postURLs = new List<string>();
-            //postURLs.Add(@"http://www.reddit.com/r/SketchDaily/comments/1i7mja/july_13th_serious_saturday_upside_down/");
 
             int themeNumber = 0;
             foreach (string postURL in postURLs)
@@ -60,6 +54,7 @@ namespace ParticipationTracker
 
             CalculateStreaks(ref users, postURLs);
             ExportStatisticsToFile(users, @"Results.txt");
+            ExportStatisticsToJson(users, @"Results.json");
 
             Dictionary<string, Flair> currentFlair = GetCurrentUserFlairDictionary();
             SetFlair(users, currentFlair);
@@ -189,6 +184,27 @@ namespace ParticipationTracker
 
         private static void ExportStatisticsToJson(List<User> users, string file)
         {
+            string lastUsername = users[users.Count - 1].Username;
+            StreamWriter writer = File.CreateText(file);
+            writer.WriteLine("{ \"aaData\":[");
+            foreach (User user in users)
+            {
+                writer.WriteLine("  {");
+                writer.WriteLine("      \"Username\": \"" + user.Username + "\",");
+                writer.WriteLine("      \"CurrentStreak\": \"" + user.CurrentStreak + "\",");
+                writer.WriteLine("      \"Downvotes\": \"" + user.Downvotes + "\",");
+                writer.WriteLine("      \"LongestStreak\": \"" + user.LongestStreak + "\",");
+                writer.WriteLine("      \"TotalComments\": \"" + user.TotalComments + "\",");
+                writer.WriteLine("      \"TotalLinks\": \"" + user.TotalLinks + "\",");
+                writer.WriteLine("      \"Upvotes\": \"" + user.Upvotes + "\",");
+                writer.WriteLine("      \"Karma\": \"" + user.Karma + "\"");
+                if(user.Username == lastUsername)
+                    writer.WriteLine("  }");
+                else
+                    writer.WriteLine("  },");
+            }
+            writer.WriteLine("]}");
+            writer.Close();
         }
 
         private static List<Comment> ParseComments(XmlNodeList comments)
