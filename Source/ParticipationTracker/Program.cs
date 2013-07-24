@@ -100,17 +100,15 @@ namespace ParticipationTracker
                     userFlair.Css = "";
                 }
 
-                if (user.CurrentStreak != 0 || currentFlair.ContainsKey(user.Username))
+                if (user.CurrentStreak != 0 || string.IsNullOrEmpty(user.Webpage) == false || currentFlair.ContainsKey(user.Username))
                 {
-                    Console.WriteLine("Setting flair for " + user.Username + " - " + userFlair.Css + " - " + userFlair.Text);
+                    Console.WriteLine("Setting flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text);
                     updatedFlair.Add(userFlair);
                 }
                 else
                 {
-                    //Console.WriteLine("Ignoring flair for user " + user.Username);
-                }
-
-               
+                    Console.WriteLine("Ignoring flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text);
+                }               
             }
 
             _reddit.SetFlairBatch("sketchdaily", updatedFlair, session); // this is important and should not really be commented out.
