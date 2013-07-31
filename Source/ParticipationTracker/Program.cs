@@ -58,6 +58,8 @@ namespace ParticipationTracker
 
             Dictionary<string, Flair> currentFlair = GetCurrentUserFlairDictionary();
             SetFlair(users, currentFlair);
+
+            UploadResults(@"Results.json");
             Console.WriteLine("Done.");
         }
 
@@ -241,6 +243,34 @@ namespace ParticipationTracker
             }
 
             return flairDictionary;
+        }
+
+        private static void UploadResults(string filename)
+        {
+            string username = ConfigurationManager.AppSettings["ftpUsername"];
+            string password = ConfigurationManager.AppSettings["ftpPassword"];
+            string ftpPath = ConfigurationManager.AppSettings["ftpPath"];
+
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpPath + filename);
+            request.Method = WebRequestMethods.Ftp.UploadFile;
+
+            // This example assumes the FTP site uses anonymous logon.
+            request.Credentials = new NetworkCredential(username, password);
+
+            StreamReader sourceStream = new StreamReader(filename);
+            byte[] fileContents = Encoding.UTF8.GetBytes(sourceStream.ReadToEnd());
+            sourceStream.Close();
+            request.ContentLength = fileContents.Length;
+
+            Stream requestStream = request.GetRequestStream();
+            requestStream.Write(fileContents, 0, fileContents.Length);
+            requestStream.Close();
+
+            FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+
+            Console.WriteLine("Upload File Complete, status {0}", response.StatusDescription);
+
+            response.Close();
         }
 
 
