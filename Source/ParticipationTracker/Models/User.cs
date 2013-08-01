@@ -15,6 +15,7 @@ namespace ParticipationTracker
         public int Upvotes;
         public int Downvotes;
         public string Webpage;
+        public DateTime MostRecentPost;
         public List<string> DaysPostedLinks = new List<string>();
         public int Karma
         {

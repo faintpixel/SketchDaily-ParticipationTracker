@@ -14,5 +14,6 @@ namespace RedditAPI.Models
         public string Author;
         public string CreatedUTC;
         public string Flair;
+        public DateTime CreatedDate;
     }
 }

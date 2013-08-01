@@ -86,6 +86,9 @@ namespace ParticipationTracker
             }
             user.Upvotes += comment.Ups;
             user.Downvotes += comment.Downs;
+
+            if(user.MostRecentPost < comment.CreatedDate)
+                user.MostRecentPost = comment.CreatedDate;
         }
     }
 }

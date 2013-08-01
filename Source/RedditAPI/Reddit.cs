@@ -266,6 +266,14 @@ namespace RedditAPI
             return results;
         }
 
+        private DateTime UnixTimeStampToDateTime( double unixTimeStamp )
+        {
+            // Unix timestamp is seconds past epoch
+            System.DateTime dtDateTime = new DateTime(1970,1,1,0,0,0,0);
+            dtDateTime = dtDateTime.AddSeconds( unixTimeStamp ).ToLocalTime();
+            return dtDateTime;
+        }
+
         private List<Comment> ParseComment(JObject data, string postUrl, bool useCache)
         {
             List<Comment> comments = new List<Comment>();
@@ -285,6 +293,7 @@ namespace RedditAPI
                 comment.Body = (string)data["data"]["body"];
                 comment.BodyHTML = (string)data["data"]["body_html"];
                 comment.CreatedUTC = ((float)data["data"]["created"]).ToString();
+                comment.CreatedDate = UnixTimeStampToDateTime(data["data"]["created"].Value<double>());
                 comment.Downs = (int)data["data"]["downs"];
                 comment.Flair = (string)data["data"]["author_flair_css_class"];
                 comment.Ups = (int)data["data"]["ups"];

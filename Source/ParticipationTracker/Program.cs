@@ -65,6 +65,8 @@ namespace ParticipationTracker
 
         private static void SetFlair(List<User> users, Dictionary<string, Flair> currentFlair)
         {
+            DateTime inactiveCutoff = DateTime.Now.AddDays(-30);
+
             string username = ConfigurationManager.AppSettings["Username"];
             string password = ConfigurationManager.AppSettings["Password"];
 
@@ -94,29 +96,48 @@ namespace ParticipationTracker
                 else
                     userFlair.Css = "oneyear";
 
-                userFlair.Text = user.CurrentStreak + " " + user.Webpage;
+                userFlair.Text = user.CurrentStreak + " / " + user.TotalLinks;
+                if(string.IsNullOrEmpty(user.Webpage) == false)
+                    userFlair.Text = userFlair.Text + " - " + user.Webpage;
 
-                if (user.CurrentStreak == 0 && string.IsNullOrEmpty(user.Webpage) && userFlair.Css == "default")
+                if(user.MostRecentPost >= inactiveCutoff) 
                 {
-                    userFlair.Text = "";
-                    userFlair.Css = "";
-                }
-
-                if (user.CurrentStreak != 0 || string.IsNullOrEmpty(user.Webpage) == false || currentFlair.ContainsKey(user.Username))
-                {
-                    Console.WriteLine("Setting flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text);
-                    updatedFlair.Add(userFlair);
+                    if (currentFlair.ContainsKey(user.Username))
+                    {
+                        if (currentFlair[user.Username].Text == userFlair.Text && currentFlair[user.Username].Css == userFlair.Css)
+                        {
+                            Console.WriteLine("     Ignoring flair for user " + user.Username + ". Text: " + userFlair.Text + ". CSS: " + userFlair.Css + ". Last post on " + user.MostRecentPost.ToString() + ". No change.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Updating flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
+                            updatedFlair.Add(userFlair);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Inserting flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
+                        updatedFlair.Add(userFlair);
+                    }
                 }
                 else
                 {
-                    Console.WriteLine("Ignoring flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text);
-                }               
+                    if(currentFlair.ContainsKey(user.Username))
+                    {
+                        userFlair.Css = "";
+                        userFlair.Text = "";
+                        Console.WriteLine("Clearing flair for user due to inactivity " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
+                        updatedFlair.Add(userFlair);
+                    }
+                    else
+                    {
+                        Console.WriteLine("     Skipping flair for " + user.Username + " due to inactivity. Most recent post: " + user.MostRecentPost.ToString() + " and no existing flair found.");
+                    }
+                }
             }
 
-            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session); // this is important and should not really be commented out.
+            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session); 
         }
-
-        
 
         private static void CalculateStreaks(ref List<User> users, List<string> themes)
         {
