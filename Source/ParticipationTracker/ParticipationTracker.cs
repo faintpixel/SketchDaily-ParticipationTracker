@@ -72,8 +72,18 @@ namespace ParticipationTracker
             if (comment.BodyHTML.Contains("&lt;a") && comment.BodyHTML.Contains("&gt;")) 
             {
                 user.TotalLinks += 1;
-                if (user.DaysPostedLinks.Contains(themeURL) == false)
-                    user.DaysPostedLinks.Add(themeURL);
+
+                if (comment.Body.Contains(@"/nostreak") == false)
+                {
+                    if (user.DaysPostedLinks.Contains(themeURL) == false)
+                        user.DaysPostedLinks.Add(themeURL);
+                }
+                else
+                {
+                    if (user.ExcludedFromStreakLinks.Contains(themeURL) == false)
+                        user.ExcludedFromStreakLinks.Add(themeURL);
+                    Console.WriteLine("Skipping comment for " + user.Username + ": " + comment.Link);
+                }
             }
 
             // check for webpage link

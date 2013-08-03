@@ -17,6 +17,7 @@ namespace ParticipationTracker
         public string Webpage;
         public DateTime MostRecentPost;
         public List<string> DaysPostedLinks = new List<string>();
+        public List<String> ExcludedFromStreakLinks = new List<string>();
         public int Karma
         {
             get

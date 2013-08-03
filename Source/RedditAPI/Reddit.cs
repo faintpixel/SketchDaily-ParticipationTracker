@@ -297,6 +297,7 @@ namespace RedditAPI
                 comment.Downs = (int)data["data"]["downs"];
                 comment.Flair = (string)data["data"]["author_flair_css_class"];
                 comment.Ups = (int)data["data"]["ups"];
+                comment.Link = postUrl + (string)data["data"]["id"];
 
                 if (data["data"]["replies"].Type == JTokenType.Object)
                 {
@@ -304,10 +305,6 @@ namespace RedditAPI
 
                     foreach (JObject child in children)
                         comments.AddRange(ParseComment(child, postUrl, useCache));
-                }
-                else
-                {
-                    bool stop = true;
                 }
 
                 comments.Add(comment);

@@ -9,6 +9,7 @@ using System.Configuration;
 using RedditAPI;
 using RedditAPI.Models;
 using System.Web.Script.Serialization;
+using System.Security.Cryptography;
 
 namespace ParticipationTracker
 {
@@ -19,9 +20,11 @@ namespace ParticipationTracker
         private static string PARTICIPANTS_FILE = ConfigurationManager.AppSettings["ParticipantsFile"];
         private static string BLACKLIST_FILE = ConfigurationManager.AppSettings["BlackListFile"];
         private static int CACHE_AFTER_THIS_MANY_THEMES = 30;
+        private static DateTime INACTIVE_CUTOFF_DATE = DateTime.Now.AddDays(-30);
 
         static void Main(string[] args)
         {
+            Console.WriteLine("Starting - " + DateTime.Now.ToString());
             ParticipationTracker participationTracker = new ParticipationTracker();
 
             _reddit = new Reddit();
@@ -54,19 +57,30 @@ namespace ParticipationTracker
 
             CalculateStreaks(ref users, postURLs);
             ExportStatisticsToFile(users, @"Results.txt");
-            ExportStatisticsToJson(users, @"Results.json");
+            ExportStatisticsToJson(users, @"Results.json");            
 
             Dictionary<string, Flair> currentFlair = GetCurrentUserFlairDictionary();
             SetFlair(users, currentFlair);
 
+            foreach (User user in users)
+            {
+                if (user.MostRecentPost >= INACTIVE_CUTOFF_DATE)
+                {
+                    string fileName = @"UserStats/" + user.Username + ".json";
+                    bool fileChanged = ExportUserStatisticsToFile(user, fileName);
+                    if (fileChanged)
+                        UploadResults(fileName);
+                    else
+                        Console.WriteLine("No change to file '" + fileName + "'. Ignoring.");
+                }
+            }
+
             UploadResults(@"Results.json");
-            Console.WriteLine("Done.");
+            Console.WriteLine("Done. " + DateTime.Now.ToString());
         }
 
         private static void SetFlair(List<User> users, Dictionary<string, Flair> currentFlair)
         {
-            DateTime inactiveCutoff = DateTime.Now.AddDays(-30);
-
             string username = ConfigurationManager.AppSettings["Username"];
             string password = ConfigurationManager.AppSettings["Password"];
 
@@ -96,11 +110,11 @@ namespace ParticipationTracker
                 else
                     userFlair.Css = "oneyear";
 
-                userFlair.Text = user.CurrentStreak + " / " + user.TotalLinks;
+                userFlair.Text = user.CurrentStreak + " / " + user.DaysPostedLinks.Count;
                 if(string.IsNullOrEmpty(user.Webpage) == false)
                     userFlair.Text = userFlair.Text + " - " + user.Webpage;
 
-                if(user.MostRecentPost >= inactiveCutoff) 
+                if (user.MostRecentPost >= INACTIVE_CUTOFF_DATE) 
                 {
                     if (currentFlair.ContainsKey(user.Username))
                     {
@@ -110,13 +124,13 @@ namespace ParticipationTracker
                         }
                         else
                         {
-                            Console.WriteLine("Updating flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
+                            Console.WriteLine("Updating flair for user " + user.Username + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
                             updatedFlair.Add(userFlair);
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Inserting flair for user " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
+                        Console.WriteLine("Inserting flair for user " + user.Username + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
                         updatedFlair.Add(userFlair);
                     }
                 }
@@ -126,7 +140,7 @@ namespace ParticipationTracker
                     {
                         userFlair.Css = "";
                         userFlair.Text = "";
-                        Console.WriteLine("Clearing flair for user due to inactivity " + user.Username + ". Current streak: " + user.CurrentStreak + ". Webpage: " + user.Webpage + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
+                        Console.WriteLine("Clearing flair for user due to inactivity " + user.Username + ". Flair CSS: " + userFlair.Css + ", Flair Text: " + userFlair.Text + ". Most recent post: " + user.MostRecentPost.ToString());
                         updatedFlair.Add(userFlair);
                     }
                     else
@@ -136,12 +150,14 @@ namespace ParticipationTracker
                 }
             }
 
+            Console.WriteLine(DateTime.Now.ToString() + " - Setting flair batches");
+
             _reddit.SetFlairBatch("sketchdaily", updatedFlair, session); 
         }
 
         private static void CalculateStreaks(ref List<User> users, List<string> themes)
         {
-            Console.WriteLine("Calculating Streaks");
+            Console.WriteLine("Calculating Streaks - " + DateTime.Now.ToString());
             foreach (User user in users)
             {
                 string streak = "";
@@ -184,6 +200,7 @@ namespace ParticipationTracker
             writer.Write("Total Comments,");
             writer.Write("Total Links,");
             writer.Write("Webpage");
+            writer.Write("Number of themes with skips");
             writer.WriteLine();            
 
             foreach (User user in users)
@@ -196,7 +213,8 @@ namespace ParticipationTracker
                 writer.Write(user.Downvotes + ",");
                 writer.Write(user.TotalComments + ",");
                 writer.Write(user.TotalLinks + ",");
-                writer.Write(user.Webpage);
+                writer.Write(user.Webpage + ",");
+                writer.Write(user.ExcludedFromStreakLinks.Count);
                 writer.WriteLine();
             }
 
@@ -217,6 +235,8 @@ namespace ParticipationTracker
                 writer.WriteLine("      \"LongestStreak\": \"" + user.LongestStreak + "\",");
                 writer.WriteLine("      \"TotalComments\": \"" + user.TotalComments + "\",");
                 writer.WriteLine("      \"TotalLinks\": \"" + user.TotalLinks + "\",");
+                writer.WriteLine("      \"TotalThemesForStreak\": \"" + user.DaysPostedLinks.Count + "\",");
+                writer.WriteLine("      \"TotalNoStreakComments\": \"" + user.ExcludedFromStreakLinks.Count + "\",");
                 writer.WriteLine("      \"Upvotes\": \"" + user.Upvotes + "\",");
                 writer.WriteLine("      \"Karma\": \"" + user.Karma + "\"");
                 if(user.Username == lastUsername)
@@ -226,6 +246,54 @@ namespace ParticipationTracker
             }
             writer.WriteLine("]}");
             writer.Close();
+        }
+
+        private static bool ExportUserStatisticsToFile(User user, string file)
+        {
+            MD5 md5 = MD5.Create();
+            string originalHash = "";
+
+            if (File.Exists(file))
+            {                
+                FileStream originalFileStream = File.OpenRead(file);
+                originalHash = BitConverter.ToString(md5.ComputeHash(originalFileStream)).Replace("-", "").ToLower();
+                originalFileStream.Close();
+            }
+
+            StreamWriter writer = File.CreateText(file);
+
+            writer.WriteLine("{");
+            writer.WriteLine("  \"Username\": \"" + user.Username + "\",");
+            writer.WriteLine("  \"CurrentStreak\": \"" + user.CurrentStreak + "\",");
+            writer.WriteLine("  \"Downvotes\": \"" + user.Downvotes + "\",");
+            writer.WriteLine("  \"LongestStreak\": \"" + user.LongestStreak + "\",");
+            writer.WriteLine("  \"TotalComments\": \"" + user.TotalComments + "\",");
+            writer.WriteLine("  \"TotalLinks\": \"" + user.TotalLinks + "\",");
+            writer.WriteLine("  \"TotalThemesForStreak\": \"" + user.DaysPostedLinks.Count + "\",");
+            writer.WriteLine("  \"TotalNoStreakComments\": \"" + user.ExcludedFromStreakLinks.Count + "\",");
+            writer.WriteLine("  \"Upvotes\": \"" + user.Upvotes + "\",");
+            writer.WriteLine("  \"Karma\": \"" + user.Karma + "\",");
+            writer.WriteLine("  \"MostRecentUserActivity\": \"" + user.MostRecentPost.ToString()  + "\",");
+
+            writer.WriteLine("  \"NostreakThemes\" : [ ");
+            foreach(string url in user.ExcludedFromStreakLinks)
+                writer.WriteLine("      {\"url\": \"" + url + "\"},"); 
+            writer.WriteLine("  ],");
+
+            writer.WriteLine("  \"ThemesPostedTo\" : [ ");
+            foreach (string url in user.DaysPostedLinks)
+                writer.WriteLine("      {\"url\": \"" + url + "\"},");
+            writer.WriteLine("  ],");
+
+            writer.WriteLine("}");
+
+            writer.Close();
+
+            FileStream newFileStream = File.OpenRead(file);
+            string newHash = BitConverter.ToString(md5.ComputeHash(newFileStream)).Replace("-", "").ToLower();
+            newFileStream.Close();
+
+            return originalHash != newHash;
         }
 
         private static List<Comment> ParseComments(XmlNodeList comments)
@@ -289,7 +357,7 @@ namespace ParticipationTracker
 
             FtpWebResponse response = (FtpWebResponse)request.GetResponse();
 
-            Console.WriteLine("Upload File Complete, status {0}", response.StatusDescription);
+            Console.WriteLine("Upload File '" + filename + "' Complete, status {0}", response.StatusDescription);
 
             response.Close();
         }
