@@ -164,8 +164,12 @@ namespace RedditAPI
                 p.Id = (string)post["data"]["id"];
                 p.Title = (string)post["data"]["title"];
                 p.Upvotes = (int)post["data"]["ups"];
+                string selfText = (string)post["data"]["selftext"];
 
-                posts.Add(p);
+                if (selfText.Contains(@"/meta") == false)
+                    posts.Add(p);
+                else
+                    Console.WriteLine("Ignoring post " + p.URL + " because of tagging.");
             }
 
             string next = (string)data["data"]["after"];
