@@ -39,7 +39,7 @@ namespace ParticipationTracker
                 themeNumber += 1;
                 bool useCache = themeNumber > CACHE_AFTER_THIS_MANY_THEMES;
 
-                List<Comment> allCommentsForTheme = _reddit.GetComments(postURL, useCache);
+                List<Comment> allCommentsForTheme = _reddit.GetComments(postURL, postURL, useCache);
 
                 foreach (Comment comment in allCommentsForTheme)
                 {

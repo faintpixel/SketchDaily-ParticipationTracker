@@ -237,20 +237,20 @@ namespace RedditAPI
             return HttpUtility.UrlEncode(url);
         }
 
-        public List<Comment> GetComments(string postUrl, bool useCache)
+        public List<Comment> GetComments(string baseUrl, string commentUrl, bool useCache)
         {
             List<Comment> results = new List<Comment>();
 
             string response = null;
             if (useCache)
-                response = GetCachedVersion(postUrl);
+                response = GetCachedVersion(commentUrl);
 
             if (useCache == false || string.IsNullOrEmpty(response))
             {
                 Wait();
-                response = _httpHelper.SendGet(postUrl + ".json");
-                if (useCache)
-                    SaveCachedVersion(postUrl, response);
+                response = _httpHelper.SendGet(commentUrl + ".json");
+                    if (useCache)
+                        SaveCachedVersion(commentUrl, response);
             }
 
             JArray dataArray = JArray.Parse(response);
@@ -264,7 +264,7 @@ namespace RedditAPI
 
             foreach (JObject comment in comments)
             {
-                results.AddRange(ParseComment(comment, postUrl, useCache));
+                results.AddRange(ParseComment(comment, baseUrl, commentUrl, useCache));
             }
 
             return results;
@@ -278,7 +278,7 @@ namespace RedditAPI
             return dtDateTime;
         }
 
-        private List<Comment> ParseComment(JObject data, string postUrl, bool useCache)
+        private List<Comment> ParseComment(JObject data, string baseUrl, string commentUrl, bool useCache)
         {
             List<Comment> comments = new List<Comment>();
 
@@ -288,7 +288,7 @@ namespace RedditAPI
             {
                 // get them
                 string id = (string)data["data"]["id"];
-                comments.AddRange(GetComments(postUrl + id + "/", useCache));
+                comments.AddRange(GetComments(baseUrl, baseUrl + id + "/", useCache));
             }
             else
             {
@@ -301,14 +301,14 @@ namespace RedditAPI
                 comment.Downs = (int)data["data"]["downs"];
                 comment.Flair = (string)data["data"]["author_flair_css_class"];
                 comment.Ups = (int)data["data"]["ups"];
-                comment.Link = postUrl + (string)data["data"]["id"];
+                comment.Link = commentUrl + (string)data["data"]["id"];
 
                 if (data["data"]["replies"].Type == JTokenType.Object)
                 {
                     JArray children = (JArray)data["data"]["replies"]["data"]["children"];
 
                     foreach (JObject child in children)
-                        comments.AddRange(ParseComment(child, postUrl, useCache));
+                        comments.AddRange(ParseComment(child, baseUrl, commentUrl, useCache));
                 }
 
                 comments.Add(comment);
