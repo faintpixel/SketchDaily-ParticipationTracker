@@ -19,6 +19,8 @@ namespace ParticipationTracker
         private static Reddit _reddit;
         private static string PARTICIPANTS_FILE = ConfigurationManager.AppSettings["ParticipantsFile"];
         private static string BLACKLIST_FILE = ConfigurationManager.AppSettings["BlackListFile"];
+        private static string STATS_FOLDER = ConfigurationManager.AppSettings["UserStatsDirectory"];
+        private static string STATS_FTP_FOLDER = ConfigurationManager.AppSettings["FTPStatsDirectory"];
         private static int CACHE_AFTER_THIS_MANY_THEMES = 30;
         private static DateTime INACTIVE_CUTOFF_DATE = DateTime.Now.AddDays(-30);
 
@@ -66,10 +68,10 @@ namespace ParticipationTracker
             {
                 if (user.MostRecentPost >= INACTIVE_CUTOFF_DATE)
                 {
-                    string fileName = @"UserStats/" + user.Username + ".json";
+                    string fileName = STATS_FOLDER + user.Username + ".json";
                     bool fileChanged = ExportUserStatisticsToFile(user, fileName);
                     if (fileChanged)
-                        UploadResults(fileName);
+                        UploadResults(STATS_FTP_FOLDER + user.Username + ".json");
                     else
                         Console.WriteLine("No change to file '" + fileName + "'. Ignoring.");
                 }
@@ -250,14 +252,16 @@ namespace ParticipationTracker
 
         private static bool ExportUserStatisticsToFile(User user, string file)
         {
+            Console.Write("Exporting user stats to file " + file + "... ");
             MD5 md5 = MD5.Create();
             string originalHash = "";
 
             if (File.Exists(file))
-            {                
+            {
+                Console.Write("Found existing stats file. Opening for comparison... ");
                 FileStream originalFileStream = File.OpenRead(file);
                 originalHash = BitConverter.ToString(md5.ComputeHash(originalFileStream)).Replace("-", "").ToLower();
-                originalFileStream.Close();
+                originalFileStream.Close();                
             }
 
             StreamWriter writer = File.CreateText(file);
@@ -288,6 +292,8 @@ namespace ParticipationTracker
             writer.WriteLine("}");
 
             writer.Close();
+
+            Console.WriteLine("Done writing to file.");
 
             FileStream newFileStream = File.OpenRead(file);
             string newHash = BitConverter.ToString(md5.ComputeHash(newFileStream)).Replace("-", "").ToLower();
@@ -336,6 +342,7 @@ namespace ParticipationTracker
 
         private static void UploadResults(string filename)
         {
+            Console.Write("Uploading file " + filename + "... ");
             string username = ConfigurationManager.AppSettings["ftpUsername"];
             string password = ConfigurationManager.AppSettings["ftpPassword"];
             string ftpPath = ConfigurationManager.AppSettings["ftpPath"];
@@ -357,7 +364,7 @@ namespace ParticipationTracker
 
             FtpWebResponse response = (FtpWebResponse)request.GetResponse();
 
-            Console.WriteLine("Upload File '" + filename + "' Complete, status {0}", response.StatusDescription);
+            Console.WriteLine("Done. Status {0}", response.StatusDescription);
 
             response.Close();
         }
