@@ -58,8 +58,8 @@ namespace ParticipationTracker
             List<User> users = userDictionary.Values.ToList();
 
             CalculateStreaks(ref users, postURLs);
-            ExportStatisticsToFile(users, @"Results.txt");
-            ExportStatisticsToJson(users, @"Results.json");            
+            ExportStatisticsToFile(users, STATS_FOLDER + "Results.txt");
+            ExportStatisticsToJson(users, STATS_FOLDER + "Results.json");            
 
             Dictionary<string, Flair> currentFlair = GetCurrentUserFlairDictionary();
             SetFlair(users, currentFlair);
@@ -71,13 +71,13 @@ namespace ParticipationTracker
                     string fileName = STATS_FOLDER + user.Username + ".json";
                     bool fileChanged = ExportUserStatisticsToFile(user, fileName);
                     if (fileChanged)
-                        UploadResults(STATS_FTP_FOLDER + user.Username + ".json");
+                        UploadResults(STATS_FOLDER + user.Username + ".json", STATS_FTP_FOLDER + user.Username + ".json");
                     else
                         Console.WriteLine("No change to file '" + fileName + "'. Ignoring.");
                 }
             }
 
-            UploadResults(@"Results.json");
+            UploadResults(STATS_FOLDER + "Results.json", "Results.json");
             Console.WriteLine("Done. " + DateTime.Now.ToString());
         }
 
@@ -340,20 +340,20 @@ namespace ParticipationTracker
             return flairDictionary;
         }
 
-        private static void UploadResults(string filename)
+        private static void UploadResults(string source, string destination)
         {
-            Console.Write("Uploading file " + filename + "... ");
+            Console.Write("Uploading file " + source + "... ");
             string username = ConfigurationManager.AppSettings["ftpUsername"];
             string password = ConfigurationManager.AppSettings["ftpPassword"];
             string ftpPath = ConfigurationManager.AppSettings["ftpPath"];
 
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpPath + filename);
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(ftpPath + destination);
             request.Method = WebRequestMethods.Ftp.UploadFile;
 
             // This example assumes the FTP site uses anonymous logon.
             request.Credentials = new NetworkCredential(username, password);
 
-            StreamReader sourceStream = new StreamReader(filename);
+            StreamReader sourceStream = new StreamReader(source);
             byte[] fileContents = Encoding.UTF8.GetBytes(sourceStream.ReadToEnd());
             sourceStream.Close();
             request.ContentLength = fileContents.Length;
