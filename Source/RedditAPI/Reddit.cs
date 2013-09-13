@@ -30,7 +30,7 @@ namespace RedditAPI
 
         public Session Login(string username, string password)
         {
-            string url = @"http://www.reddit.com/api/login/" + username;
+            string url = @"http://api.reddit.com/api/login/" + username;
             string parameters = "user=" + username + "&passwd=" + password + "&api_type=json";
 
             Wait();
@@ -54,7 +54,7 @@ namespace RedditAPI
         public List<string> SetFlairBatch(string subreddit, List<Flair> flair, Session session)
         {
             List<string> errors = new List<string>();
-            string url = @"http://www.reddit.com/api/flaircsv.json";
+            string url = @"http://api.reddit.com/api/flaircsv.json";
 
             List<string> flairParameters = new List<string>();
             string current = "";
@@ -97,7 +97,7 @@ namespace RedditAPI
         {
             List<Flair> flairList = new List<Flair>();
 
-            string url = "http://www.reddit.com/r/" +subreddit + "/api/flairlist.json?&limit=1000";
+            string url = "http://api.reddit.com/r/" +subreddit + "/api/flairlist.json?&limit=1000";
             if (string.IsNullOrEmpty(after) == false)
                 url = url + "&after=" + after;
 
@@ -129,7 +129,7 @@ namespace RedditAPI
         {
             List<Post> posts = new List<Post>();
 
-            string url = "http://www.reddit.com/r/" + subreddit + "/new/.json?sort=new&limit=100";
+            string url = "http://api.reddit.com/r/" + subreddit + "/new/.json?sort=new&limit=100";
 
             posts = GetSubredditPosts("sketchdaily", null);
 
@@ -143,7 +143,7 @@ namespace RedditAPI
         {
             List<Post> posts = new List<Post>();
 
-            string url = "http://www.reddit.com/r/" + subreddit + "/new/.json?sort=new&limit=100";
+            string url = "http://api.reddit.com/r/" + subreddit + "/new/.json?sort=new&limit=100";
             if (string.IsNullOrEmpty(after) == false)
                 url = url + "&after=" + after;
 
@@ -156,7 +156,7 @@ namespace RedditAPI
             foreach (JObject post in allPosts)
             {
                 Post p = new Post();
-                p.URL = "http://www.reddit.com" + (string)post["data"]["permalink"]; // doing it this way because if you use URL and it's not a self post you'll end up with the wrong link.
+                p.URL = "http://api.reddit.com" + (string)post["data"]["permalink"]; // doing it this way because if you use URL and it's not a self post you'll end up with the wrong link.
                 string utc = post["data"]["created"].ToString(); // this is awkward
                 p.CreationDate = long.Parse(utc);
                 p.Author = (string)post["data"]["author"];

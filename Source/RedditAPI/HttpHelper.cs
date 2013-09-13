@@ -12,60 +12,90 @@ namespace RedditAPI
 {
     public class HttpHelper
     {
-        public string SendGet(string url)
+        public string SendGet(string url, int attemptNumber = 1)
         {
-            Log("[GET] " + url);
-            WebClient client = new WebClient();
-            client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
-
-            string result = client.DownloadString(url);
-
-            return result;
-        }
-
-        public string SendPost(string url, string parameters, Session session = null)
-        {
-            Log("[POST] " + url + " - parameters: " + parameters);
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            request.UserAgent = "bot for /r/sketchdaily by /u/artomizer";
-
-            if (session != null)
-            {
-                string encodedCookieData = HttpUtility.UrlEncode(session.CookieData);
-                Console.WriteLine("COOKIE DATA: " + encodedCookieData);
-
-                CookieContainer cookieContainer = new CookieContainer();                
-
-                Cookie cookie = new Cookie("reddit_session", encodedCookieData);
-                cookie.Domain = "reddit.com";
-
-                string cookieValue = "reddit_session=" + cookie.Value;
-                cookieContainer.SetCookies(new Uri(url), cookieValue);
-                request.CookieContainer = cookieContainer;
-            }
-            request.Method = "POST";
-            request.ContentType = "application/x-www-form-urlencoded";
-            Stream reqStream = request.GetRequestStream();
-
-            byte[] postArray = Encoding.ASCII.GetBytes(parameters);
-            reqStream.Write(postArray, 0, postArray.Length);
-            reqStream.Close();
-
-            WebResponse result;
-
             try
             {
-                result = request.GetResponse();
+                Log("[GET] " + url);
+                WebClient client = new WebClient();
+                client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
+
+                string result = client.DownloadString(url);
+
+                return result;
             }
-            catch (WebException ex)
+            catch (Exception ex)
             {
-                result = ex.Response;
+                Console.WriteLine(ex);
+                if (attemptNumber <= 5)
+                {
+                    Console.WriteLine("Trying again in 5 seconds.");
+                    System.Threading.Thread.Sleep(5000);
+                    return SendGet(url, attemptNumber + 1);
+                }
+                else
+                    throw;
             }
+        }
 
-            StreamReader str = new StreamReader(result.GetResponseStream());
-            string responseString = str.ReadToEnd();
+        public string SendPost(string url, string parameters, Session session = null, int attemptNumber = 1)
+        {
+            try
+            {
+                Log("[POST] " + url + " - parameters: " + parameters);
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                request.UserAgent = "bot for /r/sketchdaily by /u/artomizer";
 
-            return responseString;
+                if (session != null)
+                {
+                    string encodedCookieData = HttpUtility.UrlEncode(session.CookieData);
+                    Console.WriteLine("COOKIE DATA: " + encodedCookieData);
+
+                    CookieContainer cookieContainer = new CookieContainer();
+
+                    Cookie cookie = new Cookie("reddit_session", encodedCookieData);
+                    cookie.Domain = "reddit.com";
+
+                    string cookieValue = "reddit_session=" + cookie.Value;
+                    cookieContainer.SetCookies(new Uri(url), cookieValue);
+                    request.CookieContainer = cookieContainer;
+                }
+                request.Method = "POST";
+                request.ContentType = "application/x-www-form-urlencoded";
+                Stream reqStream = request.GetRequestStream();
+
+                byte[] postArray = Encoding.ASCII.GetBytes(parameters);
+                reqStream.Write(postArray, 0, postArray.Length);
+                reqStream.Close();
+
+                WebResponse result;
+
+                try
+                {
+                    result = request.GetResponse();
+                }
+                catch (WebException ex)
+                {
+                    result = ex.Response;
+                }
+
+                StreamReader str = new StreamReader(result.GetResponseStream());
+                string responseString = str.ReadToEnd();
+
+                return responseString;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                if (attemptNumber <= 5)
+                {
+                    Console.WriteLine("Trying again in 5 seconds.");
+                    System.Threading.Thread.Sleep(5000);
+                    return SendPost(url, parameters, session, attemptNumber + 1);
+                }
+                else
+                    throw;
+            }
         }
 
         private void Log(string message)

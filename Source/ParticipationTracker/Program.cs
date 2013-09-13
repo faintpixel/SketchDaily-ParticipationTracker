@@ -15,7 +15,6 @@ namespace ParticipationTracker
 {
     class Program
     {
-
         private static Reddit _reddit;
         private static string PARTICIPANTS_FILE = ConfigurationManager.AppSettings["ParticipantsFile"];
         private static string BLACKLIST_FILE = ConfigurationManager.AppSettings["BlackListFile"];
@@ -25,11 +24,11 @@ namespace ParticipationTracker
         private static DateTime INACTIVE_CUTOFF_DATE = DateTime.Now.AddDays(-30);
 
         static void Main(string[] args)
-        {
+        {          
             Console.WriteLine("Starting - " + DateTime.Now.ToString());
             ParticipationTracker participationTracker = new ParticipationTracker();
-
             _reddit = new Reddit();
+            
 
             List<string> postURLs = participationTracker.GetRelevantPostURLs();
 
