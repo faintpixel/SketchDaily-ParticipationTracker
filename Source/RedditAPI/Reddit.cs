@@ -248,7 +248,7 @@ namespace RedditAPI
             if (useCache == false || string.IsNullOrEmpty(response))
             {
                 Wait();
-                response = _httpHelper.SendGet(commentUrl + ".json");
+                response = _httpHelper.SendGet(commentUrl + ".json?limit=5000");
                     if (useCache)
                         SaveCachedVersion(commentUrl, response);
             }
@@ -288,7 +288,10 @@ namespace RedditAPI
             {
                 // get them
                 string id = (string)data["data"]["id"];
-                comments.AddRange(GetComments(baseUrl, baseUrl + id + "/", useCache));
+                JArray children = (JArray)data["data"]["children"];
+                
+                foreach(JValue child in children)
+                    comments.AddRange(GetComments(baseUrl, baseUrl + child.Value + "/", useCache));
             }
             else
             {

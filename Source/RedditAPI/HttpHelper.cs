@@ -29,8 +29,8 @@ namespace RedditAPI
                 Console.WriteLine(ex);
                 if (attemptNumber <= 5)
                 {
-                    Console.WriteLine("Trying again in 5 seconds.");
-                    System.Threading.Thread.Sleep(5000);
+                    Console.WriteLine("Trying again in 2 seconds.");
+                    System.Threading.Thread.Sleep(2000);
                     return SendGet(url, attemptNumber + 1);
                 }
                 else
@@ -89,8 +89,8 @@ namespace RedditAPI
                 Console.WriteLine(ex);
                 if (attemptNumber <= 5)
                 {
-                    Console.WriteLine("Trying again in 5 seconds.");
-                    System.Threading.Thread.Sleep(5000);
+                    Console.WriteLine("Trying again in 2 seconds.");
+                    System.Threading.Thread.Sleep(2000);
                     return SendPost(url, parameters, session, attemptNumber + 1);
                 }
                 else

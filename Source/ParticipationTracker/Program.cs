@@ -28,7 +28,6 @@ namespace ParticipationTracker
             Console.WriteLine("Starting - " + DateTime.Now.ToString());
             ParticipationTracker participationTracker = new ParticipationTracker();
             _reddit = new Reddit();
-            
 
             List<string> postURLs = participationTracker.GetRelevantPostURLs();
 
