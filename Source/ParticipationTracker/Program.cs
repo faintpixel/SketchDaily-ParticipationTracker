@@ -327,8 +327,13 @@ namespace ParticipationTracker
 
         private static Dictionary<string, Flair> GetCurrentUserFlairDictionary()
         {
+            string username = ConfigurationManager.AppSettings["Username"];
+            string password = ConfigurationManager.AppSettings["Password"];
+
+            Session session = _reddit.Login(username, password);
+
             Dictionary<string, Flair> flairDictionary = new Dictionary<string, Flair>();
-            List<Flair> flair = _reddit.GetFlairForSubreddit("sketchdaily");
+            List<Flair> flair = _reddit.GetFlairForSubreddit("sketchdaily", session);
 
             foreach (Flair f in flair)
             {

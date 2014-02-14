@@ -93,16 +93,16 @@ namespace RedditAPI
             return errors;
         }
 
-        public List<Flair> GetFlairForSubreddit(string subreddit, string after = null)
+        public List<Flair> GetFlairForSubreddit(string subreddit, Session session, string after = null)
         {
             List<Flair> flairList = new List<Flair>();
 
-            string url = "http://api.reddit.com/r/" +subreddit + "/api/flairlist.json?&limit=1000";
+            string url = "http://api.reddit.com/r/" +subreddit + "/api/flairlist.json?&limit=1000?uh=" + session.ModHash;
             if (string.IsNullOrEmpty(after) == false)
                 url = url + "&after=" + after;
 
             Wait();
-            string json = _httpHelper.SendGet(url);
+            string json = _httpHelper.SendGet(url, "reddit_session=" + session.CookieData);
             
             JObject data = JObject.Parse(json);
             JArray users = (JArray)data["users"];
@@ -120,7 +120,7 @@ namespace RedditAPI
             string next = (string)data["next"];
 
             if (string.IsNullOrEmpty(next) == false)
-                flairList.AddRange(GetFlairForSubreddit(subreddit, next));
+                flairList.AddRange(GetFlairForSubreddit(subreddit, session, next));
 
             return flairList;
         }
@@ -148,7 +148,7 @@ namespace RedditAPI
                 url = url + "&after=" + after;
 
             Wait();
-            string json = _httpHelper.SendGet(url);
+            string json = _httpHelper.SendGet(url, "");
 
             JObject data = JObject.Parse(json);
             JArray allPosts = (JArray)data["data"]["children"];
@@ -248,7 +248,7 @@ namespace RedditAPI
             if (useCache == false || string.IsNullOrEmpty(response))
             {
                 Wait();
-                response = _httpHelper.SendGet(commentUrl + ".json?limit=5000");
+                response = _httpHelper.SendGet(commentUrl + ".json?limit=5000", "");
                     if (useCache)
                         SaveCachedVersion(commentUrl, response);
             }

@@ -12,13 +12,15 @@ namespace RedditAPI
 {
     public class HttpHelper
     {
-        public string SendGet(string url, int attemptNumber = 1)
+        public string SendGet(string url, string cookies, int attemptNumber = 1)
         {
             try
             {
                 Log("[GET] " + url);
                 WebClient client = new WebClient();
                 client.Headers["User-Agent"] = "bot for /r/sketchdaily by /u/artomizer";
+                if (string.IsNullOrEmpty(cookies) == false)
+                    client.Headers.Add(HttpRequestHeader.Cookie, cookies);
 
                 string result = client.DownloadString(url);
 
@@ -31,7 +33,7 @@ namespace RedditAPI
                 {
                     Console.WriteLine("Trying again in 2 seconds.");
                     System.Threading.Thread.Sleep(2000);
-                    return SendGet(url, attemptNumber + 1);
+                    return SendGet(url, cookies, attemptNumber + 1);
                 }
                 else
                     throw;
