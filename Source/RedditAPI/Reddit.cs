@@ -19,6 +19,7 @@ namespace RedditAPI
         private readonly string CACHE_DIRECTORY;
         private HttpHelper _httpHelper;
         private DateTime? _timeOfLastAPIRequest;
+        private List<string> _retrievedComments;
         
         public Reddit()
         {
@@ -26,6 +27,7 @@ namespace RedditAPI
             API_DELAY = int.Parse(ConfigurationManager.AppSettings["APIDelay"]);
             CACHE_DIRECTORY = ConfigurationManager.AppSettings["CacheDirectory"];
             _timeOfLastAPIRequest = null;
+            _retrievedComments = new List<string>();
         }
 
         public Session Login(string username, string password)
@@ -240,31 +242,38 @@ namespace RedditAPI
         public List<Comment> GetComments(string baseUrl, string commentUrl, bool useCache)
         {
             List<Comment> results = new List<Comment>();
-
-            string response = null;
-            if (useCache)
-                response = GetCachedVersion(commentUrl);
-
-            if (useCache == false || string.IsNullOrEmpty(response))
+            if (_retrievedComments.Contains(baseUrl + commentUrl) == false)
             {
-                Wait();
-                response = _httpHelper.SendGet(commentUrl + ".json?limit=5000", "");
+                _retrievedComments.Add(baseUrl + commentUrl);
+                string response = null;
+                if (useCache)
+                    response = GetCachedVersion(commentUrl);
+
+                if (useCache == false || string.IsNullOrEmpty(response))
+                {
+                    Wait();
+                    response = _httpHelper.SendGet(commentUrl + ".json?limit=5000", "");
                     if (useCache)
                         SaveCachedVersion(commentUrl, response);
+                }
+
+                JArray dataArray = JArray.Parse(response);
+
+                if (dataArray.Count != 2)
+                    throw new Exception("Arto has no idea what he's doing.");
+
+                string after = (string)dataArray[1]["data"]["after"]; // this is pointless
+
+                JArray comments = (JArray)dataArray[1]["data"]["children"];
+
+                foreach (JObject comment in comments)
+                {
+                    results.AddRange(ParseComment(comment, baseUrl, commentUrl, useCache));
+                }
             }
-
-            JArray dataArray = JArray.Parse(response);
-
-            if (dataArray.Count != 2)
-                throw new Exception("Arto has no idea what he's doing.");
-
-            string after = (string)dataArray[1]["data"]["after"]; // this is pointless
-
-            JArray comments = (JArray)dataArray[1]["data"]["children"];
-
-            foreach (JObject comment in comments)
+            else
             {
-                results.AddRange(ParseComment(comment, baseUrl, commentUrl, useCache));
+                Console.WriteLine("[WARNING] Trying to load the comments multiple times: " + baseUrl + " - " + commentUrl);
             }
 
             return results;
@@ -289,9 +298,12 @@ namespace RedditAPI
                 // get them
                 string id = (string)data["data"]["id"];
                 JArray children = (JArray)data["data"]["children"];
-                
-                foreach(JValue child in children)
-                    comments.AddRange(GetComments(baseUrl, baseUrl + child.Value + "/", useCache));
+
+                foreach (JValue child in children)
+                {
+                    string value = (string)child.Value;
+                    comments.AddRange(GetComments(baseUrl, baseUrl + value + "/", useCache));
+                }
             }
             else
             {
