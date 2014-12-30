@@ -14,6 +14,7 @@ namespace ParticipationTracker
     {
         private Reddit _reddit;
         private static string BLACKLIST_FILE = ConfigurationManager.AppSettings["BlackListFile"];
+        private static string KNOWN_URLS_FILE = ConfigurationManager.AppSettings["KnownURLsFile"];
         
         public ParticipationTracker()
         {
@@ -29,7 +30,42 @@ namespace ParticipationTracker
 
             List<string> themeList = RemoveBlacklistedPosts(posts);
 
-            return themeList;
+            List<string> fullThemeList = GetOlderThemes(themeList);
+
+            UpdateKnownURLs(fullThemeList);
+
+            return fullThemeList;
+        }
+
+        private List<string> GetOlderThemes(List<string> themes)
+        {
+            List<string> olderThemes = GetKnownPostURLs();
+            List<string> newThemes = new List<string>();
+
+            foreach (string theme in themes)
+                if (olderThemes.Contains(theme) == false)
+                    newThemes.Add(theme);
+
+            newThemes.AddRange(olderThemes);
+
+            return newThemes;
+        }
+
+        private void UpdateKnownURLs(List<string> urls)
+        {
+            List<string> urlsToWrite = new List<string>(urls);
+            urlsToWrite.RemoveRange(0, 10);
+
+            File.WriteAllLines(KNOWN_URLS_FILE, urlsToWrite);
+        }
+
+        private List<string> GetKnownPostURLs()
+        {
+            // we have to keep our own list of urls since reddit only returns the 1000 most recent.
+
+            List<string> knownURLs = File.ReadAllLines(KNOWN_URLS_FILE).ToList();
+
+            return knownURLs;
         }
 
         private List<string> RemoveBlacklistedPosts(List<Post> posts)
