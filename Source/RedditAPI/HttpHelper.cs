@@ -84,6 +84,9 @@ namespace RedditAPI
                 StreamReader str = new StreamReader(result.GetResponseStream());
                 string responseString = str.ReadToEnd();
 
+                if (responseString.Contains("<title>Ow!") && responseString.Contains("error code: ")) 
+                    throw new Exception("Response was a reddit error page.");
+
                 return responseString;
             }
             catch (Exception ex)
