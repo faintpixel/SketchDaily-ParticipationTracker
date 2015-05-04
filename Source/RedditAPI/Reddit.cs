@@ -168,7 +168,7 @@ namespace RedditAPI
                 p.Upvotes = (int)post["data"]["ups"];
                 string selfText = (string)post["data"]["selftext"];
 
-                if (selfText.Contains(@"/meta") == false)
+                if (selfText.Contains(@"(/meta)") == false)
                     posts.Add(p);
                 else
                     Console.WriteLine("Ignoring post " + p.URL + " because of tagging.");
