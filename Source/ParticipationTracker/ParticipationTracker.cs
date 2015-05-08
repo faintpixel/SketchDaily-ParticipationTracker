@@ -127,7 +127,7 @@ namespace ParticipationTracker
             {
                 string pattern = "&lt;a href=\\\"(.*?)\\\"&gt;my webpage&lt;/a&gt;";
                 Match match = Regex.Match(comment.BodyHTML.ToLower(), pattern);
-                if(match.Success)
+                if(match.Success && string.IsNullOrEmpty(user.Webpage))
                     user.Webpage = match.Groups[1].Value;
             }
             user.Upvotes += comment.Ups;
