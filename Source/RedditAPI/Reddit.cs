@@ -74,22 +74,28 @@ namespace RedditAPI
 
             foreach (string flairCall in flairParameters)
             {
-                string parameters = "r=" + subreddit + "&flair_csv=" + flairCall + "&uh=" + session.ModHash;
+                try
+                { 
+                    string parameters = "r=" + subreddit + "&flair_csv=" + flairCall + "&uh=" + session.ModHash;
 
-                Wait();
-                string response = _httpHelper.SendPost(url, parameters, session);
-                Console.WriteLine("RESPONSE:");
-                Console.WriteLine(response);
-                Console.WriteLine();
+                    Wait();
+                    string response = _httpHelper.SendPost(url, parameters, session);
+                    Console.WriteLine("RESPONSE:");
+                    Console.WriteLine(response);
+                    Console.WriteLine();
 
-                JArray results = JArray.Parse(response);
-                foreach (JObject result in results)
-                {
-                    bool success = (bool)result["ok"];
-                    if (success == false)
-                        errors.Add((string)result["status"]); // couldn't make it error, so no idea if this actually works
+                    JArray results = JArray.Parse(response);
+                    foreach (JObject result in results)
+                    {
+                        bool success = (bool)result["ok"];
+                        if (success == false)
+                            errors.Add((string)result["status"]); // couldn't make it error, so no idea if this actually works
+                    }
                 }
-
+                catch(Exception ex)
+                {
+                    Console.WriteLine("Error: " + ex);
+                }
             }
 
             return errors;
