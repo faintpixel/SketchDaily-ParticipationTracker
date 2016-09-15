@@ -30,33 +30,29 @@ namespace RedditAPI
             _retrievedComments = new List<string>();
         }
 
-        public Session Login(string username, string password)
+        public string Login(string username, string password, string clientId, string secret)
         {
-            string url = @"http://api.reddit.com/api/login/" + username;
-            string parameters = "user=" + username + "&passwd=" + password + "&api_type=json";
+            string url = @"https://www.reddit.com/api/v1/access_token?grant_type=password&username=" + username + "&password=" + password;
 
             Wait();
-            string response = _httpHelper.SendPost(url, parameters);
+            string response = _httpHelper.SendPost(url, "", username: clientId, password: secret);
             Console.WriteLine("LOGIN RESPONSE: " + response);
 
             JObject data = JObject.Parse(response);
-            JArray errors = (JArray)data["json"]["errors"];
-            if (errors.Count > 0)
+            if (data.ToString().Contains("error"))
                 throw new Exception("Error logging in."); // should update this to show the actual error(s)
             else
             {
-                Session session = new Session();
-                session.ModHash = (string)data["json"]["data"]["modhash"];
-                session.CookieData = (string)data["json"]["data"]["cookie"];
+                string token = (string)data["access_token"];
 
-                return session;
+                return token;
             }
         }
 
-        public List<string> SetFlairBatch(string subreddit, List<Flair> flair, Session session)
+        public List<string> SetFlairBatch(string subreddit, List<Flair> flair, string token)
         {
             List<string> errors = new List<string>();
-            string url = @"http://api.reddit.com/api/flaircsv.json";
+            string url = @"https://oauth.reddit.com/api/flaircsv";
 
             List<string> flairParameters = new List<string>();
             string current = "";
@@ -76,10 +72,10 @@ namespace RedditAPI
             {
                 try
                 { 
-                    string parameters = "r=" + subreddit + "&flair_csv=" + flairCall + "&uh=" + session.ModHash;
+                    string parameters = "r=" + subreddit + "&flair_csv=" + flairCall;
 
                     Wait();
-                    string response = _httpHelper.SendPost(url, parameters, session);
+                    string response = _httpHelper.SendPost(url, parameters, token);
                     Console.WriteLine("RESPONSE:");
                     Console.WriteLine(response);
                     Console.WriteLine();
@@ -101,16 +97,16 @@ namespace RedditAPI
             return errors;
         }
 
-        public List<Flair> GetFlairForSubreddit(string subreddit, Session session, string after = null)
+        public List<Flair> GetFlairForSubreddit(string subreddit, string token, string after = null)
         {
             List<Flair> flairList = new List<Flair>();
 
-            string url = "http://api.reddit.com/r/" +subreddit + "/api/flairlist.json?&limit=1000?uh=" + session.ModHash;
+            string url = "https://oauth.reddit.com/r/" + subreddit + "/api/flairlist.json?&limit=1000";
             if (string.IsNullOrEmpty(after) == false)
                 url = url + "&after=" + after;
 
             Wait();
-            string json = _httpHelper.SendGet(url, "reddit_session=" + session.CookieData);
+            string json = _httpHelper.SendGet(url, "", authToken: token);
             
             JObject data = JObject.Parse(json);
             JArray users = (JArray)data["users"];
@@ -128,7 +124,7 @@ namespace RedditAPI
             string next = (string)data["next"];
 
             if (string.IsNullOrEmpty(next) == false)
-                flairList.AddRange(GetFlairForSubreddit(subreddit, session, next));
+                flairList.AddRange(GetFlairForSubreddit(subreddit, token, next));
 
             return flairList;
         }

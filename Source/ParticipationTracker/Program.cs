@@ -82,12 +82,21 @@ namespace ParticipationTracker
             Console.WriteLine("Done. " + DateTime.Now.ToString());
         }
 
-        private static void SetFlair(List<User> users, Dictionary<string, Flair> currentFlair)
+        private static string Login()
         {
             string username = ConfigurationManager.AppSettings["Username"];
             string password = ConfigurationManager.AppSettings["Password"];
+            string clientId = ConfigurationManager.AppSettings["ClientId"];
+            string secret = ConfigurationManager.AppSettings["Secret"];
 
-            Session session = _reddit.Login(username, password);
+            string token = _reddit.Login(username, password, clientId, secret);
+
+            return token;
+        }
+
+        private static void SetFlair(List<User> users, Dictionary<string, Flair> currentFlair)
+        {
+            string token = Login();
             List<Flair> updatedFlair = new List<Flair>();
 
             foreach (User user in users)
@@ -155,7 +164,7 @@ namespace ParticipationTracker
 
             Console.WriteLine(DateTime.Now.ToString() + " - Setting flair batches");
 
-            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session);
+            _reddit.SetFlairBatch("sketchdaily", updatedFlair, token);
         }
 
         private static void CalculateStreaks(ref List<User> users, List<string> themes)
@@ -330,13 +339,10 @@ namespace ParticipationTracker
 
         private static Dictionary<string, Flair> GetCurrentUserFlairDictionary()
         {
-            string username = ConfigurationManager.AppSettings["Username"];
-            string password = ConfigurationManager.AppSettings["Password"];
-
-            Session session = _reddit.Login(username, password);
+            string token = Login();
 
             Dictionary<string, Flair> flairDictionary = new Dictionary<string, Flair>();
-            List<Flair> flair = _reddit.GetFlairForSubreddit("sketchdaily", session);
+            List<Flair> flair = _reddit.GetFlairForSubreddit("sketchdaily", token);
 
             foreach (Flair f in flair)
             {
