@@ -10,6 +10,8 @@ using RedditAPI;
 using RedditAPI.Models;
 using System.Web.Script.Serialization;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
 
 namespace ParticipationTracker
 {
@@ -24,8 +26,9 @@ namespace ParticipationTracker
         private static DateTime INACTIVE_CUTOFF_DATE = DateTime.Now.AddDays(-30);
 
         static void Main(string[] args)
-        {          
+        {
             Console.WriteLine("Starting - " + DateTime.Now.ToString());
+            ServicePointManager.ServerCertificateValidationCallback = ShittyRemoveCertValidationCallback; // need this for mono apparently
             ParticipationTracker participationTracker = new ParticipationTracker();
             _reddit = new Reddit();
 
@@ -48,7 +51,7 @@ namespace ParticipationTracker
                     User user = userDictionary[comment.Author];
 
                     participationTracker.ParseComment(postURL, comment, ref user);
-                    
+
                     userDictionary[comment.Author] = user;
                 }
             }
@@ -57,7 +60,7 @@ namespace ParticipationTracker
 
             CalculateStreaks(ref users, postURLs);
             ExportStatisticsToFile(users, STATS_FOLDER + "Results.txt");
-            ExportStatisticsToJson(users, STATS_FOLDER + "Results.json");            
+            ExportStatisticsToJson(users, STATS_FOLDER + "Results.json");
 
             Dictionary<string, Flair> currentFlair = GetCurrentUserFlairDictionary();
             SetFlair(users, currentFlair);
@@ -111,10 +114,10 @@ namespace ParticipationTracker
                     userFlair.Css = "oneyear";
 
                 userFlair.Text = user.CurrentStreak + " / " + user.DaysPostedLinks.Count;
-                if(string.IsNullOrEmpty(user.Webpage) == false)
+                if (string.IsNullOrEmpty(user.Webpage) == false)
                     userFlair.Text = userFlair.Text + " - " + user.Webpage;
 
-                if (user.MostRecentPost >= INACTIVE_CUTOFF_DATE) 
+                if (user.MostRecentPost >= INACTIVE_CUTOFF_DATE)
                 {
                     if (currentFlair.ContainsKey(user.Username))
                     {
@@ -136,7 +139,7 @@ namespace ParticipationTracker
                 }
                 else
                 {
-                    if(currentFlair.ContainsKey(user.Username))
+                    if (currentFlair.ContainsKey(user.Username))
                     {
                         userFlair.Css = "";
                         userFlair.Text = "";
@@ -152,7 +155,7 @@ namespace ParticipationTracker
 
             Console.WriteLine(DateTime.Now.ToString() + " - Setting flair batches");
 
-            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session); 
+            _reddit.SetFlairBatch("sketchdaily", updatedFlair, session);
         }
 
         private static void CalculateStreaks(ref List<User> users, List<string> themes)
@@ -201,7 +204,7 @@ namespace ParticipationTracker
             writer.Write("Total Links,");
             writer.Write("Webpage");
             writer.Write("Number of themes with skips");
-            writer.WriteLine();            
+            writer.WriteLine();
 
             foreach (User user in users)
             {
@@ -239,7 +242,7 @@ namespace ParticipationTracker
                 writer.WriteLine("      \"TotalNoStreakComments\": \"" + user.ExcludedFromStreakLinks.Count + "\",");
                 writer.WriteLine("      \"Upvotes\": \"" + user.Upvotes + "\",");
                 writer.WriteLine("      \"Karma\": \"" + user.Karma + "\"");
-                if(user.Username == lastUsername)
+                if (user.Username == lastUsername)
                     writer.WriteLine("  }");
                 else
                     writer.WriteLine("  },");
@@ -259,7 +262,7 @@ namespace ParticipationTracker
                 Console.Write("Found existing stats file. Opening for comparison... ");
                 FileStream originalFileStream = File.OpenRead(file);
                 originalHash = BitConverter.ToString(md5.ComputeHash(originalFileStream)).Replace("-", "").ToLower();
-                originalFileStream.Close();                
+                originalFileStream.Close();
             }
 
             StreamWriter writer = File.CreateText(file);
@@ -275,11 +278,11 @@ namespace ParticipationTracker
             writer.WriteLine("  \"TotalNoStreakComments\": \"" + user.ExcludedFromStreakLinks.Count + "\",");
             writer.WriteLine("  \"Upvotes\": \"" + user.Upvotes + "\",");
             writer.WriteLine("  \"Karma\": \"" + user.Karma + "\",");
-            writer.WriteLine("  \"MostRecentUserActivity\": \"" + user.MostRecentPost.ToString()  + "\",");
+            writer.WriteLine("  \"MostRecentUserActivity\": \"" + user.MostRecentPost.ToString() + "\",");
 
             writer.WriteLine("  \"NostreakThemes\" : [ ");
-            foreach(string url in user.ExcludedFromStreakLinks)
-                writer.WriteLine("      {\"url\": \"" + url + "\"},"); 
+            foreach (string url in user.ExcludedFromStreakLinks)
+                writer.WriteLine("      {\"url\": \"" + url + "\"},");
             writer.WriteLine("  ],");
 
             writer.WriteLine("  \"ThemesPostedTo\" : [ ");
@@ -372,6 +375,9 @@ namespace ParticipationTracker
             response.Close();
         }
 
-
+        public static bool ShittyRemoveCertValidationCallback(System.Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            return true;
+        }
     }
 }
