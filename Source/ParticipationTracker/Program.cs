@@ -28,11 +28,14 @@ namespace ParticipationTracker
         static void Main(string[] args)
         {
             Console.WriteLine("Starting - " + DateTime.Now.ToString());
+            //ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls13;
             ServicePointManager.ServerCertificateValidationCallback = ShittyRemoveCertValidationCallback; // need this for mono apparently
             ParticipationTracker participationTracker = new ParticipationTracker();
             _reddit = new Reddit();
 
-            List<string> postURLs = participationTracker.GetRelevantPostURLs();
+            string token = Login();
+
+            List<string> postURLs = participationTracker.GetRelevantPostURLs(token);
 
             Dictionary<string, User> userDictionary = new Dictionary<string, User>();
 
@@ -42,7 +45,7 @@ namespace ParticipationTracker
                 themeNumber += 1;
                 bool useCache = themeNumber > CACHE_AFTER_THIS_MANY_THEMES;
 
-                List<Comment> allCommentsForTheme = _reddit.GetComments(postURL, postURL, useCache);
+                List<Comment> allCommentsForTheme = _reddit.GetComments(postURL, postURL, useCache, token);
 
                 foreach (Comment comment in allCommentsForTheme)
                 {

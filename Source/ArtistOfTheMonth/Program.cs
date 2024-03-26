@@ -18,14 +18,14 @@ namespace ArtistOfTheMonth
         {
             _reddit = new Reddit();
 
-            List<Post> posts = GetAllPosts();
+            List<Post> posts = GetAllPosts("");
             posts.RemoveRange(30, posts.Count - 30);
             
             Dictionary<string, User> username_user = new Dictionary<string, User>();
 
             foreach (Post post in posts)
             {
-                List<Comment> allCommentsForPost = _reddit.GetComments(post.URL, post.URL, false);
+                List<Comment> allCommentsForPost = _reddit.GetComments(post.URL, post.URL, false, "");
                 foreach (Comment comment in allCommentsForPost)
                 {
                     string pattern = "&lt;a href=\"(.*?)\"&gt;";
@@ -74,9 +74,9 @@ namespace ArtistOfTheMonth
             writer.Close();
         }
 
-        public static List<Post> GetAllPosts()
+        public static List<Post> GetAllPosts(string token)
         {
-            List<Post> posts = _reddit.GetAllPostsForSubreddit("sketchdaily");
+            List<Post> posts = _reddit.GetAllPostsForSubreddit("sketchdaily", null);
 
             posts.RemoveAt(0); 
 

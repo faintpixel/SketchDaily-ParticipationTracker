@@ -21,9 +21,9 @@ namespace ParticipationTracker
             _reddit = new Reddit();
         }
 
-        public List<string> GetRelevantPostURLs()
+        public List<string> GetRelevantPostURLs(string token)
         {
-            List<Post> posts = _reddit.GetAllPostsForSubreddit("sketchdaily");
+            List<Post> posts = _reddit.GetAllPostsForSubreddit("sketchdaily", token);
             LogPostURLSToFile(posts, "FullPostList.txt");
 
             posts.RemoveAt(0); // remove the first one since the day is not over yet

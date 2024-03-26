@@ -36,7 +36,7 @@ namespace RedditAPI
                 {
                     Console.WriteLine("Trying again in 2 seconds.");
                     System.Threading.Thread.Sleep(2000);
-                    return SendGet(url, cookies, attemptNumber + 1);
+                    return SendGet(url, cookies, attemptNumber + 1, authToken);
                 }
                 else
                     throw;

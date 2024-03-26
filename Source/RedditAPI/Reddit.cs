@@ -129,13 +129,13 @@ namespace RedditAPI
             return flairList;
         }
 
-        public List<Post> GetAllPostsForSubreddit(string subreddit)
+        public List<Post> GetAllPostsForSubreddit(string subreddit, string token)
         {
             List<Post> posts = new List<Post>();
 
             string url = "http://api.reddit.com/r/" + subreddit + "/new/.json?sort=new&limit=100";
 
-            posts = GetSubredditPosts("sketchdaily", null);
+            posts = GetSubredditPosts("sketchdaily", null, token);
 
             posts = posts.OrderBy(p => p.CreationDate).ToList();
             posts.Reverse();
@@ -143,7 +143,7 @@ namespace RedditAPI
             return posts;
         }
 
-        private List<Post> GetSubredditPosts(string subreddit, string after)
+        private List<Post> GetSubredditPosts(string subreddit, string after, string token)
         {
             List<Post> posts = new List<Post>();
 
@@ -152,7 +152,7 @@ namespace RedditAPI
                 url = url + "&after=" + after;
 
             Wait();
-            string json = _httpHelper.SendGet(url, "");
+            string json = _httpHelper.SendGet(url, "", authToken: token);
 
             JObject data = JObject.Parse(json);
             JArray allPosts = (JArray)data["data"]["children"];
@@ -179,7 +179,7 @@ namespace RedditAPI
             string next = (string)data["data"]["after"];
 
             if (string.IsNullOrEmpty(next) == false)
-                posts.AddRange(GetSubredditPosts(subreddit, next));
+                posts.AddRange(GetSubredditPosts(subreddit, next, token));
 
             return posts;
         }        
@@ -241,7 +241,7 @@ namespace RedditAPI
             return HttpUtility.UrlEncode(url);
         }
 
-        public List<Comment> GetComments(string baseUrl, string commentUrl, bool useCache)
+        public List<Comment> GetComments(string baseUrl, string commentUrl, bool useCache, string token)
         {
             List<Comment> results = new List<Comment>();
             if (_retrievedComments.Contains(baseUrl + commentUrl) == false)
@@ -254,7 +254,7 @@ namespace RedditAPI
                 if (useCache == false || string.IsNullOrEmpty(response))
                 {
                     Wait();
-                    response = _httpHelper.SendGet(commentUrl + ".json?limit=5000", "");
+                    response = _httpHelper.SendGet(commentUrl + ".json?limit=5000", "", authToken: token);
                     if (useCache)
                         SaveCachedVersion(commentUrl, response);
                 }
@@ -270,7 +270,7 @@ namespace RedditAPI
 
                 foreach (JObject comment in comments)
                 {
-                    results.AddRange(ParseComment(comment, baseUrl, commentUrl, useCache));
+                    results.AddRange(ParseComment(comment, baseUrl, commentUrl, useCache, token));
                 }
             }
             else
@@ -289,7 +289,7 @@ namespace RedditAPI
             return dtDateTime;
         }
 
-        private List<Comment> ParseComment(JObject data, string baseUrl, string commentUrl, bool useCache)
+        private List<Comment> ParseComment(JObject data, string baseUrl, string commentUrl, bool useCache, string token)
         {
             List<Comment> comments = new List<Comment>();
 
@@ -304,7 +304,7 @@ namespace RedditAPI
                 foreach (JValue child in children)
                 {
                     string value = (string)child.Value;
-                    comments.AddRange(GetComments(baseUrl, baseUrl + value + "/", useCache));
+                    comments.AddRange(GetComments(baseUrl, baseUrl + value + "/", useCache, token));
                 }
             }
             else
@@ -325,7 +325,7 @@ namespace RedditAPI
                     JArray children = (JArray)data["data"]["replies"]["data"]["children"];
 
                     foreach (JObject child in children)
-                        comments.AddRange(ParseComment(child, baseUrl, commentUrl, useCache));
+                        comments.AddRange(ParseComment(child, baseUrl, commentUrl, useCache, token));
                 }
 
                 comments.Add(comment);
